@@ -117,12 +117,16 @@ packages:
 
 ## ESP32-P4 JC4880P443
 
-The 480x800 portrait display defaults to portrait orientation. Use `"180"` if you want the portrait layout flipped upside down. For a 90-degree landscape mount, use the dedicated layout preset below. It still uses ESPHome 2026.4's native LVGL rotation; the preset just changes the layout values to 800x480 so the portrait UI is not clipped.
+The 480x800 portrait display defaults to portrait orientation and supports all four rotations. Use `"180"` if you want the portrait layout flipped upside down. For landscape mounts, use the dedicated layout preset below. It still uses ESPHome 2026.4's native LVGL rotation; the preset just changes the layout values to 800x480 so the portrait UI is not clipped.
 
 | `display_rotation` |
 | ------------------- |
 | `"0"` (default)     |
+| `"90"`              |
 | `"180"`             |
+| `"270"`             |
+
+The device also exposes **Screen Rotation** in Home Assistant as a dropdown with `0`, `90`, `180`, and `270` options.
 
 ### Example: 180-degree rotation
 
@@ -144,12 +148,13 @@ packages:
     refresh: 1s
 ```
 
-### Example: 90-degree landscape rotation
+### Example: landscape rotation
 
 ```yaml
 substitutions:
   name: "music-dashboard-43inch"
   friendly_name: "Music Dashboard 4.3inch"
+  display_rotation: "90"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -162,3 +167,5 @@ packages:
     ref: main
     refresh: 1s
 ```
+
+Use `display_rotation: "270"` with the same `packages-90.yaml` preset if you want the landscape layout flipped the other way.
