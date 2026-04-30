@@ -15,3 +15,4 @@ time:
           }
           id(apply_timezone).execute();
           id(screen_schedule_check).execute();
+          id(refresh_clock_label).execute();

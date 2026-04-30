@@ -163,6 +163,8 @@ select:
       - "Pacific/Kiritimati (GMT+14)"
     on_value:
       - script.execute: apply_timezone
+      - script.execute: screen_schedule_check
+      - script.execute: refresh_clock_label
 
 
 script:

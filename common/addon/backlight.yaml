@@ -710,29 +710,7 @@ script:
           lv_obj_set_style_text_opa(id(clock_label), LV_OPA_COVER, 0);
           lv_obj_set_style_text_color(id(clock_label), lv_color_white(), 0);
           lv_obj_move_foreground(id(clock_screensaver));
-          setenv("TZ", id(tz_posix).c_str(), 1);
-          tzset();
-          auto time = id(ha_time).now();
-          int hour = 0;
-          int minute = 0;
-          if (time.is_valid()) {
-            hour = time.hour;
-            minute = time.minute;
-          }
-          char buf[6];
-          snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
-          lv_label_set_text(id(clock_label), buf);
-          lv_obj_update_layout(id(clock_screensaver));
-          lv_obj_update_layout(id(clock_label));
-          lv_coord_t w = lv_obj_get_width(id(clock_label));
-          lv_coord_t h = lv_obj_get_height(id(clock_label));
-          int cx = lv_obj_get_width(id(clock_screensaver)) / 2;
-          int cy = lv_obj_get_height(id(clock_screensaver)) / 2;
-          int ox = (minute * 7) % 25 - 12;
-          int oy = (minute * 13) % 17 - 8;
-          lv_obj_set_pos(id(clock_label), cx + ox - w/2, cy + oy - h/2);
-          lv_obj_invalidate(id(clock_screensaver));
-          lv_obj_invalidate(id(clock_label));
+      - script.execute: refresh_clock_label
       - lvgl.widget.redraw:
       - light.turn_on:
           id: backlight
@@ -742,6 +720,31 @@ script:
                 : id(custom_day_night_is_day);
             return (is_day ? id(clock_brightness).state : id(evening_clock_brightness).state) / 100.0f;
           transition_length: 3s
+
+  - id: refresh_clock_label
+    mode: restart
+    then:
+      - lambda: |-
+          if (!id(is_clock_showing)) return;
+          if (lv_obj_has_flag(id(clock_screensaver), LV_OBJ_FLAG_HIDDEN)) return;
+          setenv("TZ", id(tz_posix).c_str(), 1);
+          tzset();
+          auto time = id(ha_time).now();
+          if (!time.is_valid()) return;
+          char buf[6];
+          snprintf(buf, sizeof(buf), "%02d:%02d", time.hour, time.minute);
+          lv_label_set_text(id(clock_label), buf);
+          lv_obj_update_layout(id(clock_screensaver));
+          lv_obj_update_layout(id(clock_label));
+          lv_coord_t w = lv_obj_get_width(id(clock_label));
+          lv_coord_t h = lv_obj_get_height(id(clock_label));
+          int cx = lv_obj_get_width(id(clock_screensaver)) / 2;
+          int cy = lv_obj_get_height(id(clock_screensaver)) / 2;
+          int ox = (time.minute * 7) % 25 - 12;
+          int oy = (time.minute * 13) % 17 - 8;
+          lv_obj_set_pos(id(clock_label), cx + ox - w/2, cy + oy - h/2);
+          lv_obj_invalidate(id(clock_screensaver));
+          lv_obj_invalidate(id(clock_label));
 
   - id: hide_clock_view
     mode: single
@@ -795,22 +798,4 @@ interval:
 
   - interval: 30s
     then:
-      - lambda: |-
-          if (!id(is_clock_showing)) return;
-          if (lv_obj_has_flag(id(clock_screensaver), LV_OBJ_FLAG_HIDDEN)) return;
-          setenv("TZ", id(tz_posix).c_str(), 1);
-          tzset();
-          auto time = id(ha_time).now();
-          if (!time.is_valid()) return;
-          char buf[6];
-          snprintf(buf, sizeof(buf), "%02d:%02d", time.hour, time.minute);
-          lv_label_set_text(id(clock_label), buf);
-          lv_obj_update_layout(id(clock_screensaver));
-          lv_obj_update_layout(id(clock_label));
-          lv_coord_t w = lv_obj_get_width(id(clock_label));
-          lv_coord_t h = lv_obj_get_height(id(clock_label));
-          int cx = lv_obj_get_width(id(clock_screensaver)) / 2;
-          int cy = lv_obj_get_height(id(clock_screensaver)) / 2;
-          int ox = (time.minute * 7) % 25 - 12;
-          int oy = (time.minute * 13) % 17 - 8;
-          lv_obj_set_pos(id(clock_label), cx + ox - w/2, cy + oy - h/2);
+      - script.execute: refresh_clock_label
