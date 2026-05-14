@@ -107,6 +107,12 @@
     screen_rotation: { domain: "select", name: "Screen Rotation", optionsKey: "screen_rotation_options" },
     auto_update: { domain: "switch", name: "Firmware: Auto Update", bool: true },
     update_frequency: { domain: "select", name: "Firmware: Update Frequency", optionsKey: "update_frequency_options" },
+    firmware_version: {
+      domain: "text_sensor",
+      name: "Firmware: Version",
+      firmwareVersion: true,
+      fetchNames: ["firmware__version", "firmware_version", "firmware_version_sensor"]
+    },
     firmware_update: { domain: "update", name: "Firmware: Update", update: true },
     check_latest: { domain: "button", name: "Firmware: Check for Update", skipFetch: true },
     developer_experimental_features: { domain: "switch", name: "Developer: Experimental Features", bool: true },
@@ -167,6 +173,10 @@
     var e = ENTITIES[key];
     ID_TO_KEY[e.domain + "/" + e.name] = key;
     ID_TO_KEY[e.domain + "-" + slug(e.name)] = key;
+    (e.fetchNames || []).forEach(function (name) {
+      ID_TO_KEY[e.domain + "/" + name] = key;
+      ID_TO_KEY[e.domain + "-" + slug(name)] = key;
+    });
   });
 
   function eventId(d) {
@@ -184,6 +194,30 @@
       });
   }
 
+  function safeGetFirst(urls) {
+    return Promise.all(urls.map(safeGet)).then(function (results) {
+      for (var i = 0; i < results.length; i++) {
+        if (results[i]) return results[i];
+      }
+      return null;
+    });
+  }
+
+  function fetchUrlsForEntity(key) {
+    var spec = ENTITIES[key];
+    var names = [spec.name].concat(spec.fetchNames || []);
+    var seen = {};
+    return names.map(function (name) {
+      var url = eid(spec.domain, name);
+      if (spec.optionsKey) url += "?detail=all";
+      return url;
+    }).filter(function (url) {
+      if (seen[url]) return false;
+      seen[url] = true;
+      return true;
+    });
+  }
+
   function post(url, params) {
     var fullUrl = params ? url + "?" + new URLSearchParams(params).toString() : url;
     return fetch(fullUrl, { method: "POST" }).then(function (r) {
@@ -194,6 +228,13 @@
       showBanner("Failed to save setting", "error");
       return null;
     });
+  }
+
+  function setInstalledVersion(value) {
+    value = String(value == null ? "" : value).trim();
+    if (!value) return;
+    if (isSpecificFirmwareVersion(S.installed_version) && !isSpecificFirmwareVersion(value)) return;
+    S.installed_version = value;
   }
 
   function postQuiet(url) {
@@ -263,9 +304,14 @@
     var spec = ENTITIES[key];
     if (!spec || !data) return;
 
+    if (spec.firmwareVersion) {
+      setInstalledVersion(data.state != null ? data.state : data.value);
+      return;
+    }
+
     if (spec.update) {
       S.firmware_state = String(data.state || "").trim().toUpperCase();
-      S.installed_version = data.current_version || data.current || "";
+      setInstalledVersion(data.current_version || data.current || "");
       S.latest_version = data.latest_version || data.value || "";
       S.firmware_release_url = data.release_url || S.firmware_release_url || "";
       S.update_available = !!(
@@ -301,9 +347,7 @@
   function fetchEntity(key) {
     var spec = ENTITIES[key];
     if (!spec || spec.skipFetch) return Promise.resolve();
-    var url = endpoint(key);
-    if (spec.optionsKey) url += "?detail=all";
-    return safeGet(url).then(function (data) {
+    return safeGetFirst(fetchUrlsForEntity(key)).then(function (data) {
       if (data) applyEntityToState(key, data);
       return data;
     });
