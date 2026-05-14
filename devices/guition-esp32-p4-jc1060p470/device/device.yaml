@@ -525,10 +525,10 @@ script:
           lv_obj_set_width(id(artwork_error_label), 300);
 
           if (landscape) {
-            lv_obj_set_pos(id(accent_overlay), 600, 0);
-            lv_obj_set_size(id(accent_overlay), 424, 600);
-            lv_obj_set_pos(id(track_info_text), 632, 34);
-            lv_obj_set_size(id(track_info_text), 360, 430);
+            lv_obj_set_pos(id(accent_overlay), 570, 0);
+            lv_obj_set_size(id(accent_overlay), 454, 600);
+            lv_obj_set_pos(id(track_info_text), 600, 34);
+            lv_obj_set_size(id(track_info_text), 392, 430);
             lv_obj_set_style_max_height(id(media_title_label), 260, 0);
           } else {
             lv_obj_set_pos(id(accent_overlay), 0, 600);
