@@ -130,7 +130,7 @@ lvgl:
                   pad_top: 10
                   width: 100%
                   long_mode: dot
-                  text_font: roboto_light40_font
+                  text_font: roboto_light55_font
                   text_color: 0xFFFFFF
                   text_opa: 80%
                   text_align: left
