@@ -5,18 +5,9 @@
 #ifdef USE_ARTWORK_IMAGE_JPEG_SUPPORT
 #include <jpeglib.h>
 #include <csetjmp>
-#include <cstddef>
-#include <cstdint>
 
 namespace esphome {
 namespace artwork_image {
-
-/// Custom error manager that longjmps instead of calling exit()
-struct JpegErrorMgr {
-  jpeg_error_mgr pub;
-  jmp_buf setjmp_buffer;
-  char message[JMSG_LENGTH_MAX];
-};
 
 /**
  * @brief Image decoder specialization for JPEG images.
@@ -29,28 +20,10 @@ class JpegDecoder : public ImageDecoder {
    * @param display The image to decode the stream into.
    */
   JpegDecoder(ArtworkImage *image) : ImageDecoder(image) {}
-  ~JpegDecoder() override;
+  ~JpegDecoder() override {}
 
   int prepare(size_t download_size) override;
   int HOT decode(uint8_t *buffer, size_t size) override;
-  bool is_decoding() const override { return this->decode_started_ && !this->is_finished(); }
-
- protected:
-  int start_decode_(uint8_t *buffer, size_t size);
-  int decode_scanlines_();
-  void cleanup_();
-
-  jpeg_decompress_struct cinfo_{};
-  JpegErrorMgr jerr_{};
-  uint8_t *row_buffer_{nullptr};
-  bool cinfo_created_{false};
-  bool decode_started_{false};
-  size_t source_size_{0};
-  int out_w_{0};
-  int out_h_{0};
-  int y_{0};
-  bool use_rgb565_{false};
-  bool big_endian_{false};
 };
 
 }  // namespace artwork_image

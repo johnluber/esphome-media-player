@@ -491,16 +491,6 @@ void ArtworkImage::loop() {
     this->finish_download_();
     return;
   }
-  if (this->decoder_->is_decoding()) {
-    if (!this->decode_buffered_data_()) {
-      this->fail_download_();
-      return;
-    }
-    if (this->decoder_->is_finished()) {
-      this->finish_download_();
-    }
-    return;
-  }
   if (this->downloader_ == nullptr) {
     ESP_LOGE(TAG, "Downloader not instantiated; cannot download");
     return;
