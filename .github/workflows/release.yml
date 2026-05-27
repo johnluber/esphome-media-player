@@ -65,6 +65,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Ensure full checkout
+        run: |
+          git sparse-checkout disable || true
+          git checkout --force HEAD -- .
+          test -f "builds/${{ matrix.config }}.factory.yaml"
+
       - name: Cache ESPHome build
         uses: actions/cache@v5
         with:

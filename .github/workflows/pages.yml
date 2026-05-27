@@ -37,6 +37,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Ensure full checkout
+        run: |
+          git sparse-checkout disable || true
+          git checkout --force HEAD -- .
+          test -f package-lock.json
+
       - uses: actions/setup-node@v6
         with:
           node-version: "24"
