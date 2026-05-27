@@ -282,10 +282,8 @@ void ArtworkImage::update() {
   ESP_LOGD(TAG, "Starting download");
   size_t total_size = this->downloader_->content_length;
 
-  ImageFormat resolved = this->detect_format_();
-
-  if (resolved == ImageFormat::AUTO) {
-    ESP_LOGD(TAG, "Image format not identified from Content-Type, deferring to magic-byte detection");
+  if (this->format_ == ImageFormat::AUTO) {
+    ESP_LOGD(TAG, "Deferring auto image format detection until magic bytes are available");
     this->log_state_("format-detect-wait");
     this->start_time_ = ::time(nullptr);
     this->last_data_millis_ = millis();
@@ -293,6 +291,7 @@ void ArtworkImage::update() {
     return;
   }
 
+  ImageFormat resolved = this->detect_format_();
   if (!this->create_decoder_(resolved, total_size)) {
     this->end_connection_();
     this->download_error_callback_.call();
@@ -637,28 +636,8 @@ ImageFormat ArtworkImage::detect_format_() {
     return this->format_;
   }
 
-  // Try Content-Type header
-  if (this->downloader_) {
-    std::string ct = this->downloader_->get_response_header(CONTENT_TYPE_HEADER_NAME);
-    if (ct.find("image/jpeg") != std::string::npos || ct.find("image/jpg") != std::string::npos) {
-      ESP_LOGD(TAG, "Detected JPEG from Content-Type: %s", ct.c_str());
-      return ImageFormat::JPEG;
-    }
-    if (ct.find("image/png") != std::string::npos) {
-      ESP_LOGD(TAG, "Detected PNG from Content-Type: %s", ct.c_str());
-      return ImageFormat::PNG;
-    }
-    if (ct.find("image/heic") != std::string::npos || ct.find("image/heif") != std::string::npos) {
-      ESP_LOGW(TAG, "Detected HEIC/HEIF from Content-Type: %s", ct.c_str());
-      return ImageFormat::HEIC;
-    }
-    if (ct.find("image/bmp") != std::string::npos) {
-      ESP_LOGD(TAG, "Detected BMP from Content-Type: %s", ct.c_str());
-      return ImageFormat::BMP;
-    }
-  }
-
-  // Fallback: magic bytes from download buffer
+  // Prefer magic bytes because Home Assistant proxy headers can be stale for
+  // identical media_player_proxy paths whose cache parameter points at new art.
   if (this->download_buffer_.unread() >= 4) {
     const uint8_t *data = this->download_buffer_.data();
     if (data[0] == 0xFF && data[1] == 0xD8) {
@@ -679,6 +658,27 @@ ImageFormat ArtworkImage::detect_format_() {
     }
     if (data[0] == 0x42 && data[1] == 0x4D) {
       ESP_LOGD(TAG, "Detected BMP from magic bytes");
+      return ImageFormat::BMP;
+    }
+  }
+
+  // Fallback: Content-Type header
+  if (this->downloader_) {
+    std::string ct = str_lower_case(this->downloader_->get_response_header(CONTENT_TYPE_HEADER_NAME));
+    if (ct.find("image/jpeg") != std::string::npos || ct.find("image/jpg") != std::string::npos) {
+      ESP_LOGD(TAG, "Detected JPEG from Content-Type: %s", ct.c_str());
+      return ImageFormat::JPEG;
+    }
+    if (ct.find("image/png") != std::string::npos) {
+      ESP_LOGD(TAG, "Detected PNG from Content-Type: %s", ct.c_str());
+      return ImageFormat::PNG;
+    }
+    if (ct.find("image/heic") != std::string::npos || ct.find("image/heif") != std::string::npos) {
+      ESP_LOGW(TAG, "Detected HEIC/HEIF from Content-Type: %s", ct.c_str());
+      return ImageFormat::HEIC;
+    }
+    if (ct.find("image/bmp") != std::string::npos) {
+      ESP_LOGD(TAG, "Detected BMP from Content-Type: %s", ct.c_str());
       return ImageFormat::BMP;
     }
   }
