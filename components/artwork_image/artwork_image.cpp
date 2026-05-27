@@ -809,6 +809,9 @@ bool ArtworkImage::promote_decode_buffer_() {
   this->data_start_ = this->buffer_;
   this->width_ = this->buffer_width_;
   this->height_ = this->buffer_height_;
+#ifdef USE_LVGL
+  memset(&this->dsc_, 0, sizeof(this->dsc_));
+#endif
   return true;
 }
 
