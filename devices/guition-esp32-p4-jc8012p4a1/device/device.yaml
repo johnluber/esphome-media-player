@@ -160,36 +160,6 @@ logger:
   baud_rate: 115200
 
 
-debug:
-  update_interval: 10s
-
-
-text_sensor:
-  - platform: debug
-    reset_reason:
-      name: "Diagnostics: Reset Reason"
-      entity_category: diagnostic
-
-
-sensor:
-  - platform: debug
-    free:
-      name: "Diagnostics: Heap Free"
-      entity_category: diagnostic
-    block:
-      name: "Diagnostics: Heap Max Block"
-      entity_category: diagnostic
-    min_free:
-      name: "Diagnostics: Heap Min Free"
-      entity_category: diagnostic
-    psram:
-      name: "Diagnostics: Free PSRAM"
-      entity_category: diagnostic
-    loop_time:
-      name: "Diagnostics: Loop Time"
-      entity_category: diagnostic
-
-
 external_components:
   - source: github://jtenniswood/esphome-media-player@main
     components: [gsl3680]
