@@ -46,8 +46,7 @@ globals:
     initial_value: '""'
 
 # Refresh elapsed time from the last Home Assistant position anchor. The progress
-# bar is re-anchored on state/position changes, then LVGL animates it on a
-# high-resolution range so long tracks still look smooth.
+# bar redraws on a reduced range without LVGL animation, keeping movement light.
 interval:
   - interval: ${playback_refresh_interval}
     then:
@@ -151,6 +150,11 @@ interval:
                   }
                   id(refresh_progress_bar_from_state).execute();
                 }
+      - if:
+          condition:
+            lambda: 'return !id(web_settings_active) && ${playback_live_position_enabled} && id(show_progress_bar).state && !id(is_tv_idle);'
+          then:
+            - script.execute: refresh_progress_bar_from_state
 
 script:
   - id: refresh_progress_bar_from_state
@@ -203,26 +207,16 @@ script:
           }
 
           if (tv_mode) {
+            if (value == id(last_tv_progress_percent)) return;
             id(last_tv_progress_percent) = value;
           } else {
+            if (value == id(last_media_progress_percent)) return;
             id(last_media_progress_percent) = value;
           }
 
           lv_bar_set_range(id(media_progress_bar), 0, progress_range);
           lv_obj_set_style_anim_duration(id(media_progress_bar), 0, LV_PART_MAIN);
           lv_bar_set_value(id(media_progress_bar), value, LV_ANIM_OFF);
-
-          if (!${playback_live_position_enabled} || !playing || dur <= 0.0f || pos >= dur || value >= progress_range) {
-            return;
-          }
-
-          float remaining_seconds = dur - pos;
-          uint32_t remaining_ms = (uint32_t)(remaining_seconds * 1000.0f);
-          if (remaining_ms < 1000) remaining_ms = 1000;
-          if (remaining_ms > 86400000) remaining_ms = 86400000;
-
-          lv_obj_set_style_anim_duration(id(media_progress_bar), remaining_ms, LV_PART_MAIN);
-          lv_bar_set_value(id(media_progress_bar), progress_range, LV_ANIM_ON);
 
   # Start the hide timer only (no show). Used when artwork finishes loading or when
   # playback starts. After duration seconds, hides overlay if still playing and visible.
