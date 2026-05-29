@@ -6,7 +6,7 @@ substitutions:
   # Device profile
   screen_width: "1280"
   screen_height: "800"
-  artwork_size: "640"
+  artwork_size: "800"
   artwork_display_size: "800"
   clock_cx: "640"
   clock_cy: "400"
