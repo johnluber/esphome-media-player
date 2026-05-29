@@ -17,6 +17,9 @@ globals:
   - id: last_media_position
     type: float
     initial_value: '0.0'
+  - id: last_media_progress_percent
+    type: int
+    initial_value: '-1'
   - id: last_position_timestamp
     type: int
     initial_value: '0'
@@ -124,25 +127,52 @@ interval:
           condition:
             lambda: 'return !id(web_settings_active) && ${playback_live_position_enabled};'
           then:
-            - if:
-                condition:
-                  lambda: 'return !id(show_progress_bar).state || id(is_tv_idle);'
-                then:
-                  - lvgl.widget.hide: media_progress_bar
-                else:
-                  - lvgl.widget.show: media_progress_bar
-                  - lvgl.bar.update:
-                      id: media_progress_bar
-                      value: !lambda |-
-                        float pos = id(is_tv_mode) ? id(last_tv_media_position) : id(last_media_position);
-                        float dur;
-                        if (id(is_tv_mode)) {
-                          dur = id(tv_media_duration_sensor).has_state() ? id(tv_media_duration_sensor).state : 0.0f;
-                        } else {
-                          dur = id(media_duration_sensor).has_state() ? id(media_duration_sensor).state : 0.0f;
-                        }
-                        if (dur > 0) return (int)((pos / dur) * 100.0f);
-                        return 0;
+            - lambda: |-
+                bool should_show = id(show_progress_bar).state && !id(is_tv_idle);
+                bool is_hidden = lv_obj_has_flag(id(media_progress_bar), LV_OBJ_FLAG_HIDDEN);
+
+                if (!should_show) {
+                  if (!is_hidden) {
+                    lv_obj_add_flag(id(media_progress_bar), LV_OBJ_FLAG_HIDDEN);
+                  }
+                  id(last_media_progress_percent) = -1;
+                  id(last_tv_progress_percent) = -1;
+                  return;
+                }
+
+                if (is_hidden) {
+                  lv_obj_clear_flag(id(media_progress_bar), LV_OBJ_FLAG_HIDDEN);
+                  if (id(is_tv_mode)) {
+                    id(last_tv_progress_percent) = -1;
+                  } else {
+                    id(last_media_progress_percent) = -1;
+                  }
+                }
+
+                float pos = id(is_tv_mode) ? id(last_tv_media_position) : id(last_media_position);
+                float dur;
+                if (id(is_tv_mode)) {
+                  dur = id(tv_media_duration_sensor).has_state() ? id(tv_media_duration_sensor).state : 0.0f;
+                } else {
+                  dur = id(media_duration_sensor).has_state() ? id(media_duration_sensor).state : 0.0f;
+                }
+
+                int percent = 0;
+                if (dur > 0.0f) {
+                  percent = (int)((pos / dur) * 100.0f);
+                }
+                if (percent < 0) percent = 0;
+                if (percent > 100) percent = 100;
+
+                if (id(is_tv_mode)) {
+                  if (percent == id(last_tv_progress_percent)) return;
+                  id(last_tv_progress_percent) = percent;
+                } else {
+                  if (percent == id(last_media_progress_percent)) return;
+                  id(last_media_progress_percent) = percent;
+                }
+
+                lv_bar_set_value(id(media_progress_bar), percent, LV_ANIM_OFF);
 
 script:
   # Start the hide timer only (no show). Used when artwork finishes loading or when
@@ -234,6 +264,7 @@ text_sensor:
                 then:
                   - lambda: |-
                       id(last_media_position) = 0.0f;
+                      id(last_media_progress_percent) = -1;
                       id(ha_position_epoch) = 0;
                       auto t = id(ha_time).now();
                       if (t.is_valid()) {
@@ -248,6 +279,7 @@ text_sensor:
                   - lvgl.bar.update:
                       id: media_progress_bar
                       value: 0
+                      animated: false
                 else:
                   - lambda: 'id(title_received_once) = true;'
 

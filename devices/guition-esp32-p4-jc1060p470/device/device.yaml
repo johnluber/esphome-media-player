@@ -702,9 +702,11 @@ script:
       - lambda: 'id(artist_has_content) = false;'
       - lvgl.widget.hide: media_artist_label
       - lvgl.widget.hide: artwork_error_label
+      - lambda: 'id(last_tv_progress_percent) = -1;'
       - lvgl.bar.update:
           id: media_progress_bar
           value: 0
+          animated: false
       - lvgl.label.update:
           id: media_time_label
           text: "0:00"
