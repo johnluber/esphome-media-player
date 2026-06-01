@@ -829,6 +829,9 @@ void ArtworkImage::retire_active_buffer_() {
   this->buffer_height_ = 0;
   this->width_ = 0;
   this->height_ = 0;
+#ifdef USE_LVGL
+  memset(&this->dsc_, 0, sizeof(this->dsc_));
+#endif
   this->cleanup_retired_buffers_(false);
 }
 
