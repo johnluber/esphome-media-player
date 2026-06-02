@@ -74,9 +74,7 @@ script:
             lambda: 'return id(artwork_download_stagger_ms) < 0;'
           then:
             - lambda: |-
-                const uint32_t download_window_ms = ${artwork_download_spread_ms};
                 const uint32_t retry_window_ms = ${artwork_retry_spread_ms};
-                uint32_t download_stagger_ms = 0;
                 uint32_t retry_stagger_ms = 0;
                 uint8_t mac[6] = {0, 0, 0, 0, 0, 0};
                 esphome::get_mac_address_raw(mac);
@@ -85,18 +83,15 @@ script:
                   hash ^= byte;
                   hash *= 16777619UL;
                 }
-                if (download_window_ms > 0) {
-                  download_stagger_ms = hash % download_window_ms;
-                }
                 hash ^= 0x9e3779b9UL;
                 hash *= 16777619UL;
                 if (retry_window_ms > 0) {
                   retry_stagger_ms = hash % retry_window_ms;
                 }
-                id(artwork_download_stagger_ms) = static_cast<int>(download_stagger_ms);
+                id(artwork_download_stagger_ms) = 0;
                 id(artwork_retry_stagger_ms) = static_cast<int>(retry_stagger_ms);
                 ESP_LOGD("artwork", "Artwork stagger: download=%u ms retry=%u ms",
-                         static_cast<unsigned>(download_stagger_ms), static_cast<unsigned>(retry_stagger_ms));
+                         0U, static_cast<unsigned>(retry_stagger_ms));
 
   - id: apply_downloaded_artwork
     mode: queued
