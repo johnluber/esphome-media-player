@@ -91,8 +91,9 @@ script:
           auto *img = id(is_tv_mode) ? id(tv_art_background) : id(album_art_background);
           int iw = img->get_width();
           int ih = img->get_height();
-          ESP_LOGD("artwork", "Apply start: mode=%s image=%dx%d",
-                   id(is_tv_mode) ? "tv" : "music", iw, ih);
+          ESP_LOGI("artwork", "Apply start: mode=%s image=%dx%d content=%dx%d offset=%d,%d",
+                   id(is_tv_mode) ? "tv" : "music", iw, ih, img->get_content_width(), img->get_content_height(),
+                   img->get_content_offset_x(), img->get_content_offset_y());
           auto *w = id(album_art_background_widget);
           constexpr int display_size = ${artwork_display_size};
           lv_obj_set_size(w, display_size, display_size);
@@ -107,6 +108,8 @@ script:
             lv_img_set_zoom(w, 256);
           }
           lv_obj_align(id(media_progress_bar), LV_ALIGN_BOTTOM_MID, 0, 0);
+          ESP_LOGI("artwork", "LVGL image widget: size=%dx%d zoom=%d offsets=%d,%d",
+                   display_size, display_size, lv_img_get_zoom(w), lv_img_get_offset_x(w), lv_img_get_offset_y(w));
       - if:
           condition:
             lambda: 'return id(is_tv_mode);'

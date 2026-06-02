@@ -14,8 +14,17 @@ bool ImageDecoder::set_size(int width, int height) {
     this->failed_ = true;
     return false;
   }
-  this->x_scale_ = static_cast<double>(this->image_->decode_buffer_width_) / width;
-  this->y_scale_ = static_cast<double>(this->image_->decode_buffer_height_) / height;
+  int content_width = this->image_->decode_content_width_ > 0 ? this->image_->decode_content_width_
+                                                              : this->image_->decode_buffer_width_;
+  int content_height = this->image_->decode_content_height_ > 0 ? this->image_->decode_content_height_
+                                                                : this->image_->decode_buffer_height_;
+  this->x_offset_ = this->image_->decode_offset_x_;
+  this->y_offset_ = this->image_->decode_offset_y_;
+  this->x_scale_ = static_cast<double>(content_width) / width;
+  this->y_scale_ = static_cast<double>(content_height) / height;
+  ESP_LOGI(TAG, "Decoder geometry: source=%dx%d content=%dx%d offset=%d,%d scale=%.4f,%.4f",
+           width, height, content_width, content_height, this->x_offset_, this->y_offset_, this->x_scale_,
+           this->y_scale_);
   return success;
 }
 
@@ -23,10 +32,12 @@ void ImageDecoder::draw(int x, int y, int w, int h, const Color &color) {
   if (this->failed_) {
     return;
   }
-  auto width = std::min(this->image_->decode_buffer_width_, static_cast<int>(std::ceil((x + w) * this->x_scale_)));
-  auto height = std::min(this->image_->decode_buffer_height_, static_cast<int>(std::ceil((y + h) * this->y_scale_)));
-  for (int i = x * this->x_scale_; i < width; i++) {
-    for (int j = y * this->y_scale_; j < height; j++) {
+  auto width = std::min(this->image_->decode_buffer_width_,
+                        this->x_offset_ + static_cast<int>(std::ceil((x + w) * this->x_scale_)));
+  auto height = std::min(this->image_->decode_buffer_height_,
+                         this->y_offset_ + static_cast<int>(std::ceil((y + h) * this->y_scale_)));
+  for (int i = this->x_offset_ + static_cast<int>(x * this->x_scale_); i < width; i++) {
+    for (int j = this->y_offset_ + static_cast<int>(y * this->y_scale_); j < height; j++) {
       this->image_->draw_pixel_(i, j, color);
     }
   }
@@ -40,15 +51,15 @@ void ImageDecoder::draw_rgb565_block(int x, int y, int w, int h, const uint8_t *
 
   if (this->x_scale_ == 1.0 && this->y_scale_ == 1.0 && bpp_bytes == 2) {
     for (int row = 0; row < h; row++) {
-      int dy = y + row;
+      int dy = this->y_offset_ + y + row;
       if (dy < 0 || dy >= this->image_->decode_buffer_height_)
         continue;
-      int start_x = std::max(0, x);
-      int end_x = std::min(x + w, this->image_->decode_buffer_width_);
+      int start_x = std::max(0, this->x_offset_ + x);
+      int end_x = std::min(this->x_offset_ + x + w, this->image_->decode_buffer_width_);
       if (start_x >= end_x)
         continue;
       int copy_w = end_x - start_x;
-      int src_offset = (row * w + (start_x - x)) * 2;
+      int src_offset = (row * w + (start_x - this->x_offset_ - x)) * 2;
       int dst_pos = this->image_->get_position_(start_x, dy);
       memcpy(this->image_->decode_buffer_ + dst_pos, data + src_offset, copy_w * 2);
     }
@@ -62,11 +73,11 @@ void ImageDecoder::draw_rgb565_block(int x, int y, int w, int h, const uint8_t *
       int src_offset = (row * w + col) * 2;
 
       auto target_w = std::min(this->image_->decode_buffer_width_,
-                               static_cast<int>(std::ceil((src_x + 1) * this->x_scale_)));
+                               this->x_offset_ + static_cast<int>(std::ceil((src_x + 1) * this->x_scale_)));
       auto target_h = std::min(this->image_->decode_buffer_height_,
-                               static_cast<int>(std::ceil((src_y + 1) * this->y_scale_)));
-      for (int dy = static_cast<int>(src_y * this->y_scale_); dy < target_h; dy++) {
-        for (int dx = static_cast<int>(src_x * this->x_scale_); dx < target_w; dx++) {
+                               this->y_offset_ + static_cast<int>(std::ceil((src_y + 1) * this->y_scale_)));
+      for (int dy = this->y_offset_ + static_cast<int>(src_y * this->y_scale_); dy < target_h; dy++) {
+        for (int dx = this->x_offset_ + static_cast<int>(src_x * this->x_scale_); dx < target_w; dx++) {
           int dst_pos = this->image_->get_position_(dx, dy);
           memcpy(this->image_->decode_buffer_ + dst_pos, data + src_offset, 2);
           if (bpp_bytes > 2) {

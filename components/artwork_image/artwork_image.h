@@ -107,6 +107,10 @@ class ArtworkImage : public PollingComponent,
   bool is_big_endian() const { return this->is_big_endian_; }
   int get_fixed_width() const { return this->fixed_width_; }
   int get_fixed_height() const { return this->fixed_height_; }
+  int get_content_width() const { return this->buffer_content_width_; }
+  int get_content_height() const { return this->buffer_content_height_; }
+  int get_content_offset_x() const { return this->buffer_offset_x_; }
+  int get_content_offset_y() const { return this->buffer_offset_y_; }
   image::ImageType image_type() const { return this->type_; }
 
  protected:
@@ -226,6 +230,14 @@ class ArtworkImage : public PollingComponent,
   int buffer_height_;
   int decode_buffer_width_{0};
   int decode_buffer_height_{0};
+  int decode_content_width_{0};
+  int decode_content_height_{0};
+  int decode_offset_x_{0};
+  int decode_offset_y_{0};
+  int buffer_content_width_{0};
+  int buffer_content_height_{0};
+  int buffer_offset_x_{0};
+  int buffer_offset_y_{0};
   struct RetiredBuffer {
     uint8_t *data;
     size_t size;

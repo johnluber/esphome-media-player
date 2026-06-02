@@ -138,19 +138,27 @@ void ArtworkImage::release() {
 size_t ArtworkImage::resize_(int width_in, int height_in) {
   int width = this->fixed_width_;
   int height = this->fixed_height_;
+  int content_width = width;
+  int content_height = height;
+  int offset_x = 0;
+  int offset_y = 0;
   if (this->is_auto_resize_()) {
     width = width_in;
     height = height_in;
+    content_width = width;
+    content_height = height;
   } else if (width_in > 0 && height_in > 0) {
     if (width_in != height_in) {
       double scale = std::min(
         static_cast<double>(this->fixed_width_) / width_in,
         static_cast<double>(this->fixed_height_) / height_in
       );
-      width = (static_cast<int>(width_in * scale) + 3) & ~3;
-      height = (static_cast<int>(height_in * scale) + 3) & ~3;
-      if (width > this->fixed_width_) width = this->fixed_width_;
-      if (height > this->fixed_height_) height = this->fixed_height_;
+      content_width = std::max(1, (static_cast<int>(width_in * scale) + 3) & ~3);
+      content_height = std::max(1, (static_cast<int>(height_in * scale) + 3) & ~3);
+      if (content_width > this->fixed_width_) content_width = this->fixed_width_;
+      if (content_height > this->fixed_height_) content_height = this->fixed_height_;
+      offset_x = (this->fixed_width_ - content_width) / 2;
+      offset_y = (this->fixed_height_ - content_height) / 2;
     }
   }
   size_t new_size = this->get_buffer_size_(width, height);
@@ -158,12 +166,23 @@ size_t ArtworkImage::resize_(int width_in, int height_in) {
     if (new_size <= this->get_decode_buffer_size_()) {
       this->decode_buffer_width_ = width;
       this->decode_buffer_height_ = height;
+      this->decode_content_width_ = content_width;
+      this->decode_content_height_ = content_height;
+      this->decode_offset_x_ = offset_x;
+      this->decode_offset_y_ = offset_y;
+      memset(this->decode_buffer_, 0, new_size);
+      ESP_LOGI(TAG, "Artwork fit: source=%dx%d target=%dx%d content=%dx%d offset=%d,%d",
+               width_in, height_in, width, height, content_width, content_height, offset_x, offset_y);
       return new_size;
     }
     this->allocator_.deallocate(this->decode_buffer_, this->get_decode_buffer_size_());
     this->decode_buffer_ = nullptr;
     this->decode_buffer_width_ = 0;
     this->decode_buffer_height_ = 0;
+    this->decode_content_width_ = 0;
+    this->decode_content_height_ = 0;
+    this->decode_offset_x_ = 0;
+    this->decode_offset_y_ = 0;
   }
   ESP_LOGD(TAG, "Allocating decode buffer of %zu bytes", new_size);
   this->decode_buffer_ = this->allocator_.allocate(new_size);
@@ -175,7 +194,13 @@ size_t ArtworkImage::resize_(int width_in, int height_in) {
   }
   this->decode_buffer_width_ = width;
   this->decode_buffer_height_ = height;
-  ESP_LOGV(TAG, "New size: (%d, %d)", width, height);
+  this->decode_content_width_ = content_width;
+  this->decode_content_height_ = content_height;
+  this->decode_offset_x_ = offset_x;
+  this->decode_offset_y_ = offset_y;
+  memset(this->decode_buffer_, 0, new_size);
+  ESP_LOGI(TAG, "Artwork fit: source=%dx%d target=%dx%d content=%dx%d offset=%d,%d",
+           width_in, height_in, width, height, content_width, content_height, offset_x, offset_y);
   return new_size;
 }
 
@@ -793,6 +818,10 @@ void ArtworkImage::discard_decode_buffer_() {
   }
   this->decode_buffer_width_ = 0;
   this->decode_buffer_height_ = 0;
+  this->decode_content_width_ = 0;
+  this->decode_content_height_ = 0;
+  this->decode_offset_x_ = 0;
+  this->decode_offset_y_ = 0;
 }
 
 bool ArtworkImage::promote_decode_buffer_() {
@@ -810,9 +839,20 @@ bool ArtworkImage::promote_decode_buffer_() {
   this->buffer_ = this->decode_buffer_;
   this->buffer_width_ = this->decode_buffer_width_;
   this->buffer_height_ = this->decode_buffer_height_;
+  this->buffer_content_width_ = this->decode_content_width_;
+  this->buffer_content_height_ = this->decode_content_height_;
+  this->buffer_offset_x_ = this->decode_offset_x_;
+  this->buffer_offset_y_ = this->decode_offset_y_;
+  ESP_LOGI(TAG, "Artwork buffer ready: image=%dx%d content=%dx%d offset=%d,%d",
+           this->buffer_width_, this->buffer_height_, this->buffer_content_width_, this->buffer_content_height_,
+           this->buffer_offset_x_, this->buffer_offset_y_);
   this->decode_buffer_ = nullptr;
   this->decode_buffer_width_ = 0;
   this->decode_buffer_height_ = 0;
+  this->decode_content_width_ = 0;
+  this->decode_content_height_ = 0;
+  this->decode_offset_x_ = 0;
+  this->decode_offset_y_ = 0;
 
   this->data_start_ = this->buffer_;
   this->width_ = this->buffer_width_;
@@ -832,6 +872,10 @@ void ArtworkImage::retire_active_buffer_() {
   this->data_start_ = nullptr;
   this->buffer_width_ = 0;
   this->buffer_height_ = 0;
+  this->buffer_content_width_ = 0;
+  this->buffer_content_height_ = 0;
+  this->buffer_offset_x_ = 0;
+  this->buffer_offset_y_ = 0;
   this->width_ = 0;
   this->height_ = 0;
 #ifdef USE_LVGL
@@ -958,10 +1002,12 @@ void ArtworkImage::log_state_(const char *stage) {
   size_t bytes_read = this->downloader_ ? this->downloader_->get_bytes_read() : 0;
   size_t content_length = this->downloader_ ? this->downloader_->content_length : 0;
   ESP_LOGD(TAG,
-           "State %-24s url_len=%zu http=%zu/%zu dl_buf=%zu/%zu image=%dx%d decode=%dx%d retired=%zu heap_free=%zu heap_largest=%zu pending=%s",
+           "State %-24s url_len=%zu http=%zu/%zu dl_buf=%zu/%zu image=%dx%d content=%dx%d@%d,%d decode=%dx%d content=%dx%d@%d,%d retired=%zu heap_free=%zu heap_largest=%zu pending=%s",
            stage, this->url_.size(), bytes_read, content_length, this->download_buffer_.unread(),
-           this->download_buffer_.size(), this->buffer_width_, this->buffer_height_, this->decode_buffer_width_,
-           this->decode_buffer_height_, this->retired_buffers_.size(), heap_free, heap_largest,
+           this->download_buffer_.size(), this->buffer_width_, this->buffer_height_, this->buffer_content_width_,
+           this->buffer_content_height_, this->buffer_offset_x_, this->buffer_offset_y_, this->decode_buffer_width_,
+           this->decode_buffer_height_, this->decode_content_width_, this->decode_content_height_,
+           this->decode_offset_x_, this->decode_offset_y_, this->retired_buffers_.size(), heap_free, heap_largest,
            this->update_pending_ ? "yes" : "no");
 }
 

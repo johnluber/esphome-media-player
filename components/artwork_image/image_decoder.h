@@ -99,6 +99,8 @@ class ImageDecoder {
   size_t decoded_bytes_ = 0;
   double x_scale_ = 1.0;
   double y_scale_ = 1.0;
+  int x_offset_ = 0;
+  int y_offset_ = 0;
   bool failed_{false};
 };
 
