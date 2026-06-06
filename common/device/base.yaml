@@ -17,7 +17,6 @@ substitutions:
   playback_progress_bar_range: "100"
   playback_live_time_enabled: "true"
   playback_live_position_enabled: "true"
-  playback_live_position_min_interval_ms: "0"
   rgb565_read_expr: "data[pos] | (data[pos + 1] << 8)"
   backlight_min_visible_level: "0.02f"
   screen_schedule_internal: "true"

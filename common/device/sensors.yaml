@@ -20,9 +20,6 @@ globals:
   - id: last_media_progress_percent
     type: int
     initial_value: '-1'
-  - id: last_progress_draw_ms
-    type: uint32_t
-    initial_value: '0'
   - id: last_position_timestamp
     type: int
     initial_value: '0'
@@ -141,13 +138,11 @@ interval:
                   }
                   id(last_media_progress_percent) = -1;
                   id(last_tv_progress_percent) = -1;
-                  id(last_progress_draw_ms) = 0;
                   return;
                 }
 
                 if (is_hidden) {
                   lv_obj_clear_flag(id(media_progress_bar), LV_OBJ_FLAG_HIDDEN);
-                  id(last_progress_draw_ms) = 0;
                   if (id(is_tv_mode)) {
                     id(last_tv_progress_percent) = -1;
                   } else {
@@ -213,20 +208,9 @@ script:
 
           if (tv_mode) {
             if (value == id(last_tv_progress_percent)) return;
-          } else {
-            if (value == id(last_media_progress_percent)) return;
-          }
-
-          const uint32_t min_interval_ms = ${playback_live_position_min_interval_ms};
-          const uint32_t now = millis();
-          if (min_interval_ms > 0 && id(last_progress_draw_ms) != 0 &&
-              (uint32_t)(now - id(last_progress_draw_ms)) < min_interval_ms) {
-            return;
-          }
-
-          if (tv_mode) {
             id(last_tv_progress_percent) = value;
           } else {
+            if (value == id(last_media_progress_percent)) return;
             id(last_media_progress_percent) = value;
           }
 
@@ -241,7 +225,6 @@ script:
           lv_bar_set_range(id(media_progress_bar), 0, progress_range);
           lv_obj_set_style_anim_duration(id(media_progress_bar), 0, LV_PART_MAIN);
           lv_bar_set_value(id(media_progress_bar), value, LV_ANIM_OFF);
-          id(last_progress_draw_ms) = now;
 
   # Start the hide timer only (no show). Used when artwork finishes loading or when
   # playback starts. After duration seconds, hides overlay if still playing and visible.
@@ -336,7 +319,6 @@ text_sensor:
                   - lambda: |-
                       id(last_media_position) = 0.0f;
                       id(last_media_progress_percent) = -1;
-                      id(last_progress_draw_ms) = 0;
                       id(ha_position_epoch) = 0;
                       auto t = id(ha_time).now();
                       if (t.is_valid()) {

@@ -17,7 +17,6 @@ substitutions:
   pause_lvgl_on_screen_off: "true"
   clock_screensaver_supported: "true"
   idle_action_default: "Clock"
-  playback_live_position_min_interval_ms: "5000"
 
   # Setup screens
   setup_content_width: "420"
