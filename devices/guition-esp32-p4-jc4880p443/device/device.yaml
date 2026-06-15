@@ -288,6 +288,14 @@ globals:
     type: bool
     initial_value: 'false'
 
+  # -- Favorites panel state --
+  - id: is_favorites_open       # True when the swipe-up favorites panel is visible
+    type: bool
+    initial_value: 'false'
+  - id: was_favorites_open      # Snapshot at touch-start; blocks bleed-through taps
+    type: bool
+    initial_value: 'false'
+
   # -- TV source mode --
   - id: is_tv_mode
     type: bool
@@ -334,6 +342,7 @@ touchscreen:
       - lambda: |-
           id(was_screen_dimmed) = id(is_screen_dimmed);
           id(was_panel_open) = id(is_panel_open);
+          id(was_favorites_open) = id(is_favorites_open);
           id(touch_x_start) = touch.x;
           id(touch_y_start) = touch.y;
           id(touch_x_end) = touch.x;
@@ -387,20 +396,30 @@ touchscreen:
 
           // --- Vertical swipe: settings panel open/close ---
           // Swipe down to open: 30px+ downward movement, panel closed
-          if (view_dy > 20 && abs(view_dy) > abs(view_dx) * 2 && !id(is_panel_open)) {
+          if (view_dy > 20 && abs(view_dy) > abs(view_dx) * 2 && !id(is_panel_open) && !id(is_favorites_open)) {
             id(open_settings_panel).execute();
             return;
           }
-          // Swipe up to close: panel is open, but not when multi-speaker list is scrollable
+          // Swipe up to close settings: panel is open, but not when multi-speaker list is scrollable
           if (view_dy < -60 && abs(view_dy) > abs(view_dx) * 2 && id(is_panel_open)
               && (lv_obj_has_flag(id(speakers_container), LV_OBJ_FLAG_HIDDEN) || id(speaker_count) <= 1)) {
             id(close_settings_panel).execute();
             return;
           }
+          // Swipe up to open favorites: sufficient upward movement, no panel open
+          if (view_dy < -60 && abs(view_dy) > abs(view_dx) * 2 && !id(is_panel_open) && !id(is_favorites_open)) {
+            id(open_favorites_panel).execute();
+            return;
+          }
+          // Swipe down to close favorites
+          if (view_dy > 60 && abs(view_dy) > abs(view_dx) * 2 && id(is_favorites_open)) {
+            id(close_favorites_panel).execute();
+            return;
+          }
           // When panel is (or was) open, ignore all main-screen gestures.
           // was_panel_open guards against the close button tap bleeding
           // through to toggle_ui after the panel has already been hidden.
-          if (id(is_panel_open) || id(was_panel_open)) {
+          if (id(is_panel_open) || id(was_panel_open) || id(is_favorites_open) || id(was_favorites_open)) {
             return;
           }
 
@@ -507,6 +526,7 @@ script:
             lv_obj_set_style_max_height(id(media_title_label), 220, 0);
             lv_obj_set_width(id(media_progress_bar), 800);
             lv_obj_set_size(id(settings_panel), 800, 480);
+            lv_obj_set_size(id(favorites_panel), 800, 480);
             lv_obj_set_size(id(clock_screensaver), 800, 480);
 
             resize_fullscreen_overlay(id(setup_prompt), 800, 480);
@@ -529,6 +549,7 @@ script:
             lv_obj_set_style_max_height(id(media_title_label), 130, 0);
             lv_obj_set_width(id(media_progress_bar), 480);
             lv_obj_set_size(id(settings_panel), 480, 800);
+            lv_obj_set_size(id(favorites_panel), 480, 800);
             lv_obj_set_size(id(clock_screensaver), 480, 800);
 
             resize_fullscreen_overlay(id(setup_prompt), 480, 800);
@@ -623,6 +644,19 @@ script:
       - script.stop: start_speaker_panel_timeout
       - lvgl.widget.hide: settings_panel
       - lambda: 'id(is_panel_open) = false;'
+
+  # -- Favorites panel (called by vertical swipe-up gesture) --
+  - id: open_favorites_panel
+    mode: single
+    then:
+      - lambda: 'id(is_favorites_open) = true;'
+      - lvgl.widget.show: favorites_panel
+      - lambda: 'lv_obj_move_foreground(id(favorites_panel));'
+  - id: close_favorites_panel
+    mode: single
+    then:
+      - lvgl.widget.hide: favorites_panel
+      - lambda: 'id(is_favorites_open) = false;'
   - id: start_speaker_panel_timeout
     mode: restart
     then:
@@ -850,3 +884,4 @@ display:
     reset_pin: GPIO5
     color_order: RGB
     auto_clear_enabled: false
+
