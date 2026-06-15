@@ -211,6 +211,319 @@ lvgl:
         - !include ../setup/actions_prompt.yaml
 
         # ---------------------------------------------------------------
+        # FAVORITES PANEL (swipe-up from bottom)
+        # ---------------------------------------------------------------
+        # Full-screen overlay, starts hidden. Shown/hidden by
+        # open_favorites_panel / close_favorites_panel scripts in device.yaml.
+        # Edit the button labels and media_content_id values below to set
+        # your own favorites (radio stations, playlists, etc.).
+        # ---------------------------------------------------------------
+        - obj:
+            id: favorites_panel
+            x: 0
+            y: 0
+            width: ${layout_settings_width}
+            height: ${layout_settings_height}
+            bg_color: 0x000000
+            bg_opa: 95%
+            radius: 0
+            border_width: 0
+            pad_all: 0
+            scrollable: false
+            scrollbar_mode: "off"
+            hidden: true
+            widgets:
+              # Header
+              - label:
+                  id: favorites_title_label
+                  text: "Favorites"
+                  text_font: roboto_light55_font
+                  text_color: 0xFFFFFF
+                  x: 24
+                  y: 18
+                  width: 360
+                  text_align: left
+
+              # Close button
+              - button:
+                  id: favorites_close_button
+                  align: top_right
+                  x: -12
+                  y: 16
+                  width: 64px
+                  height: 64px
+                  radius: 32
+                  bg_color: 0x262626
+                  bg_opa: 100%
+                  border_width: 0
+                  shadow_width: 0
+                  pad_all: 0
+                  widgets:
+                    - label:
+                        text_font: $icon_font
+                        align: center
+                        text: $icon_close
+                        text_color: 0xFFFFFF
+                  on_press:
+                    - script.execute: close_favorites_panel
+
+              # Tile grid of favorites
+              # Each tile calls media_player.play_media with a content id.
+              # Adjust the text and media_content_id values to your own sources.
+              - obj:
+                  id: favorites_grid
+                  x: 12
+                  y: 90
+                  width: 456
+                  height: 680
+                  bg_opa: 0%
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: true
+                  scrollbar_mode: "off"
+                  layout:
+                    type: flex
+                    flex_flow: ROW_WRAP
+                    pad_row: 12
+                    pad_column: 12
+                    flex_align_cross: start
+
+                  widgets:
+                    # ---- Favourite 1 ----
+                    - button:
+                        id: fav_btn_1
+                        width: 216
+                        height: 100
+                        radius: 20
+                        bg_color: 0x1e1e1e
+                        bg_opa: 100%
+                        border_width: 0
+                        shadow_width: 0
+                        pad_all: 0
+                        widgets:
+                          - label:
+                              text: "\U000F075A"   # mdi:radio
+                              text_font: icon_font_large
+                              text_color: 0xFFFFFF
+                              align: left_mid
+                              x: 16
+                          - label:
+                              text: "BBC Radio 2"
+                              text_font: roboto19_font
+                              text_color: 0xFFFFFF
+                              align: right_mid
+                              x: -12
+                              width: 140
+                              long_mode: dot
+                              text_align: right
+                        on_press:
+                          - homeassistant.service:
+                              service: media_player.play_media
+                              variables:
+                                target: !lambda |-
+                                  return id(is_tv_mode) ? id(linked_media_player_entity).state : id(media_player_entity).state;
+                              data_template:
+                                entity_id: "{{ target }}"
+                                media_content_id: "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_two"
+                                media_content_type: "music"
+                          - script.execute: close_favorites_panel
+
+                    # ---- Favourite 2 ----
+                    - button:
+                        id: fav_btn_2
+                        width: 216
+                        height: 100
+                        radius: 20
+                        bg_color: 0x1e1e1e
+                        bg_opa: 100%
+                        border_width: 0
+                        shadow_width: 0
+                        pad_all: 0
+                        widgets:
+                          - label:
+                              text: "\U000F075A"
+                              text_font: icon_font_large
+                              text_color: 0xFFFFFF
+                              align: left_mid
+                              x: 16
+                          - label:
+                              text: "BBC Radio 4"
+                              text_font: roboto19_font
+                              text_color: 0xFFFFFF
+                              align: right_mid
+                              x: -12
+                              width: 140
+                              long_mode: dot
+                              text_align: right
+                        on_press:
+                          - homeassistant.service:
+                              service: media_player.play_media
+                              variables:
+                                target: !lambda |-
+                                  return id(is_tv_mode) ? id(linked_media_player_entity).state : id(media_player_entity).state;
+                              data_template:
+                                entity_id: "{{ target }}"
+                                media_content_id: "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_fourfm"
+                                media_content_type: "music"
+                          - script.execute: close_favorites_panel
+
+                    # ---- Favourite 3 ----
+                    - button:
+                        id: fav_btn_3
+                        width: 216
+                        height: 100
+                        radius: 20
+                        bg_color: 0x1e1e1e
+                        bg_opa: 100%
+                        border_width: 0
+                        shadow_width: 0
+                        pad_all: 0
+                        widgets:
+                          - label:
+                              text: "\U000F075A"
+                              text_font: icon_font_large
+                              text_color: 0xFFFFFF
+                              align: left_mid
+                              x: 16
+                          - label:
+                              text: "BBC Radio 6"
+                              text_font: roboto19_font
+                              text_color: 0xFFFFFF
+                              align: right_mid
+                              x: -12
+                              width: 140
+                              long_mode: dot
+                              text_align: right
+                        on_press:
+                          - homeassistant.service:
+                              service: media_player.play_media
+                              variables:
+                                target: !lambda |-
+                                  return id(is_tv_mode) ? id(linked_media_player_entity).state : id(media_player_entity).state;
+                              data_template:
+                                entity_id: "{{ target }}"
+                                media_content_id: "http://stream.live.vc.bbcmedia.co.uk/bbc_6music"
+                                media_content_type: "music"
+                          - script.execute: close_favorites_panel
+
+                    # ---- Favourite 4 ----
+                    - button:
+                        id: fav_btn_4
+                        width: 216
+                        height: 100
+                        radius: 20
+                        bg_color: 0x1e1e1e
+                        bg_opa: 100%
+                        border_width: 0
+                        shadow_width: 0
+                        pad_all: 0
+                        widgets:
+                          - label:
+                              text: "\U000F075A"
+                              text_font: icon_font_large
+                              text_color: 0xFFFFFF
+                              align: left_mid
+                              x: 16
+                          - label:
+                              text: "Jazz FM"
+                              text_font: roboto19_font
+                              text_color: 0xFFFFFF
+                              align: right_mid
+                              x: -12
+                              width: 140
+                              long_mode: dot
+                              text_align: right
+                        on_press:
+                          - homeassistant.service:
+                              service: media_player.play_media
+                              variables:
+                                target: !lambda |-
+                                  return id(is_tv_mode) ? id(linked_media_player_entity).state : id(media_player_entity).state;
+                              data_template:
+                                entity_id: "{{ target }}"
+                                media_content_id: "http://edge-bauermedia.sharp-stream.com/jazzedinternational.mp3"
+                                media_content_type: "music"
+                          - script.execute: close_favorites_panel
+
+                    # ---- Favourite 5 ----
+                    - button:
+                        id: fav_btn_5
+                        width: 216
+                        height: 100
+                        radius: 20
+                        bg_color: 0x1e1e1e
+                        bg_opa: 100%
+                        border_width: 0
+                        shadow_width: 0
+                        pad_all: 0
+                        widgets:
+                          - label:
+                              text: "\U000F075A"
+                              text_font: icon_font_large
+                              text_color: 0xFFFFFF
+                              align: left_mid
+                              x: 16
+                          - label:
+                              text: "Planet Rock"
+                              text_font: roboto19_font
+                              text_color: 0xFFFFFF
+                              align: right_mid
+                              x: -12
+                              width: 140
+                              long_mode: dot
+                              text_align: right
+                        on_press:
+                          - homeassistant.service:
+                              service: media_player.play_media
+                              variables:
+                                target: !lambda |-
+                                  return id(is_tv_mode) ? id(linked_media_player_entity).state : id(media_player_entity).state;
+                              data_template:
+                                entity_id: "{{ target }}"
+                                media_content_id: "http://icy-e-bab-04-cr.sharp-stream.com/planetrockuk.mp3"
+                                media_content_type: "music"
+                          - script.execute: close_favorites_panel
+
+                    # ---- Favourite 6 ----
+                    - button:
+                        id: fav_btn_6
+                        width: 216
+                        height: 100
+                        radius: 20
+                        bg_color: 0x1e1e1e
+                        bg_opa: 100%
+                        border_width: 0
+                        shadow_width: 0
+                        pad_all: 0
+                        widgets:
+                          - label:
+                              text: "\U000F075A"
+                              text_font: icon_font_large
+                              text_color: 0xFFFFFF
+                              align: left_mid
+                              x: 16
+                          - label:
+                              text: "Absolute 80s"
+                              text_font: roboto19_font
+                              text_color: 0xFFFFFF
+                              align: right_mid
+                              x: -12
+                              width: 140
+                              long_mode: dot
+                              text_align: right
+                        on_press:
+                          - homeassistant.service:
+                              service: media_player.play_media
+                              variables:
+                                target: !lambda |-
+                                  return id(is_tv_mode) ? id(linked_media_player_entity).state : id(media_player_entity).state;
+                              data_template:
+                                entity_id: "{{ target }}"
+                                media_content_id: "http://network.absoluteradio.co.uk/core/audio/mp3/live.pls?service=a8"
+                                media_content_type: "music"
+                          - script.execute: close_favorites_panel
+
+        # ---------------------------------------------------------------
         # SETTINGS PANEL (swipe-down from top)
         # ---------------------------------------------------------------
         # Full-screen overlay, starts hidden. Shown/hidden instantly by
