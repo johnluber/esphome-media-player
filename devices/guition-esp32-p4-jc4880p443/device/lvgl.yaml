@@ -347,7 +347,7 @@ lvgl:
                               align: left_mid
                               x: 16
                           - label:
-                              text: "BBC Radio 4"
+                              text: "The Blend"
                               text_font: roboto19_font
                               text_color: 0xFFFFFF
                               align: right_mid
@@ -363,7 +363,7 @@ lvgl:
                                   return id(is_tv_mode) ? id(linked_media_player_entity).state : id(media_player_entity).state;
                               data_template:
                                 entity_id: "{{ target }}"
-                                media_content_id: "http://stream.live.vc.bbcmedia.co.uk/bbc_radio_fourfm"
+                                media_content_id: "CH 16 - The Blend"
                                 media_content_type: "music"
                           - script.execute: close_favorites_panel
 
