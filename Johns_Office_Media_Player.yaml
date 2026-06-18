@@ -1,7 +1,7 @@
 substitutions:
   name: "media-player"
   friendly_name: "John's Office Media Player"
-  media_player: ""
+  media_player: "media_player.johns_office_sonos"
 
 esphome:
   name_add_mac_suffix: true
