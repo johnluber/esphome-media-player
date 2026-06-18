@@ -1,0 +1,43 @@
+esphome:
+  name: shower-probe
+  friendly_name: Shower Sensor
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger: 
+  
+one_wire:
+  - platform: gpio
+    pin: GPIO4
+
+sensor:
+  # only one device
+  - platform: dallas_temp
+    name: temperature
+    update_interval: 5s
+  
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "mumhvxiEME2PsUg8FtOEKiLxnfvIzpLxxLQ4PeJyL7k="
+
+ota:
+  - platform: esphome
+    password: "f778e34828c1de867014f4b4b7a10103"
+
+wifi:
+  ssid: Hoth
+  password: Hoth2024
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Shower-Probe Fallback Hotspot"
+    password: "XzPaLxokJn7l"
+
+captive_portal:
+    

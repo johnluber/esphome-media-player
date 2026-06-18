@@ -1,0 +1,19 @@
+substitutions:
+  name: "media-player"
+  friendly_name: "John's Office Media Player"
+  media_player: ""
+
+esphome:
+  name_add_mac_suffix: true
+
+wifi:
+  ssid: "Hoth"
+  password: "Hoth2024"
+  use_address: 192.168.3.182
+  ap:
+
+packages:
+  music_dashboard: !include devices/guition-esp32-p4-jc4880p443/packages-90.yaml
+  site_defaults: !include common/setup/site_defaults.yaml
+
+captive_portal:
