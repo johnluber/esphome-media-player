@@ -13,7 +13,7 @@ wifi:
   ap:
 
 packages:
-  music_dashboard: !include devices/guition-esp32-p4-jc8012p4a1/packages-90.yaml
+  music_dashboard: !include devices/guition-esp32-p4-jc8012p4a1/packages.yaml
   site_defaults: !include common/setup/site_defaults.yaml
 
 captive_portal:
