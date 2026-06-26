@@ -1,10 +1,10 @@
 substitutions:
   name: media-player-d396ab
-  friendly_name: Media Player d396ab
+  friendly_name: "Living Room Media Player"
 esphome:
   name: ${name}
   name_add_mac_suffix: false
-  friendly_name: ${friendly_name}
+  friendly_name: "Living Room Media Player"
 api:
   encryption:
     key: GOdYEb8gh6jf7SlUbHb3F4YUbBtR2JDYh+eBIcOoaxU=
