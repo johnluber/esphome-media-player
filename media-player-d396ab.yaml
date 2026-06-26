@@ -1,0 +1,17 @@
+substitutions:
+  name: media-player-d396ab
+  friendly_name: Media Player d396ab
+packages:
+  jtenniswood.media-player: github://jtenniswood/esphome-media-player/devices/guition-esp32-p4-jc8012p4a1/esphome.yaml@main
+esphome:
+  name: ${name}
+  name_add_mac_suffix: false
+  friendly_name: ${friendly_name}
+api:
+  encryption:
+    key: GOdYEb8gh6jf7SlUbHb3F4YUbBtR2JDYh+eBIcOoaxU=
+
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
