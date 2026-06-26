@@ -13,5 +13,5 @@ api:
 
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  ssid: Hoth
+  password: Hoth2024
