@@ -15,3 +15,8 @@ api:
 wifi:
   ssid: Hoth
   password: Hoth2024
+
+packages:
+  music_dashboard: !include devices/guition-esp32-p4-jc8012p4a1/packages.yaml
+  site_defaults: !include common/setup/site_defaults.yaml
+
