@@ -13,6 +13,7 @@ api:
 wifi:
   ssid: Hoth
   password: Hoth2024
+  use_address: 192.168.3.181
 
 packages:
 #  jtenniswood.media-player: github://jtenniswood/esphome-media-player/devices/guition-esp32-p4-jc8012p4a1/esphome.yaml@main
