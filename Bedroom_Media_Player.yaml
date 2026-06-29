@@ -8,7 +8,7 @@ esphome:
 
 api:
   encryption:
-    key:
+    key: xmPceR2fDbDBuiNyUcJ8hxoTn43suzcU18aAX/IAo5U=
 
 wifi:
   ssid: "Hoth"
