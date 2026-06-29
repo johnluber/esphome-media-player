@@ -10,7 +10,11 @@ wifi:
   ssid: "Hoth"
   password: "Hoth2024"
   use_address: 192.168.3.182
-  ap:
+  manual_ip:
+    static_ip: 192.168.3.182
+    gateway: 192.168.3.1
+    subnet: 255.255.255.0
+    dns1: 192.168.3.1
 
 packages:
   music_dashboard: !include devices/guition-esp32-p4-jc4880p443/packages-90.yaml
