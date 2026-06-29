@@ -33,7 +33,7 @@ ota:
 wifi:
   ssid: Hoth
   password: Hoth2024
-  use_address: 192.168.3.253
+  use_address: 192.168.3.190
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
