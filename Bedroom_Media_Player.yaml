@@ -4,7 +4,7 @@ substitutions:
   media_player: "media_player.bedroom_sonos"
 
 esphome:
-  name_add_mac_suffix: true
+  name_add_mac_suffix: false
 
 api:
   encryption:
@@ -14,6 +14,10 @@ wifi:
   ssid: "Hoth"
   password: "Hoth2024"
   use_address: 192.168.3.180
+  manual_ip:
+    static_ip: 192.168.3.180
+    gateway: 192.168.3.1
+    subnet: 255.255.255.0
 
 packages:
   music_dashboard: !include devices/guition-esp32-p4-jc4880p443/packages-90.yaml
