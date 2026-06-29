@@ -4,7 +4,7 @@ substitutions:
   media_player: "media_player.bedroom_sonos"
 
 esphome:
-  name_add_mac_suffix: false
+  name_add_mac_suffix: true
 
 api:
   encryption:
