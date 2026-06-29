@@ -18,7 +18,7 @@ wifi:
     static_ip: 192.168.3.180
     gateway: 192.168.3.1
     subnet: 255.255.255.0
-
+    dns1: 192.168.3.1
 packages:
   music_dashboard: !include devices/guition-esp32-p4-jc4880p443/packages-90.yaml
   site_defaults: !include common/setup/site_defaults.yaml
