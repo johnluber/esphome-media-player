@@ -6,6 +6,10 @@ substitutions:
 esphome:
   name_add_mac_suffix: true
 
+api:
+  encryption:
+    key:
+
 wifi:
   ssid: "Hoth"
   password: "Hoth2024"
