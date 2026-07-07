@@ -46,3 +46,8 @@ substitutions:
   tv_icon:       "\U000F0502"
   icon_speakers: "\U000F0D38"
   icon_close:    "\U000F0156"
+  icon_next:     "\U000F04AD"
+  icon_prev:     "\U000F04AE"
+  icon_shuffle:  "\U000F049D"
+  icon_repeat:   "\U000F0456"
+  icon_repeat_once: "\U000F0457"
