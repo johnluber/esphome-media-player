@@ -50,7 +50,7 @@ update:
   - platform: http_request
     id: firmware_update
     name: "Firmware: Update"
-    source: https://jtenniswood.github.io/esphome-media-player/firmware/${firmware_manifest_slug}/manifest.json
+    source: https://github.com/johnluber/esphome-media-player
     update_interval: never
     on_update_available:
       then:
