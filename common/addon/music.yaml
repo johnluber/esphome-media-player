@@ -20,7 +20,7 @@ globals:
     initial_value: '-1'
 
 external_components:
-  - source: github://jtenniswood/esphome-media-player@main
+  - source: github://johnluber/esphome-media-player@master
     components: [artwork_image, mipi_rgb]
     refresh: 1s
 
@@ -31,7 +31,7 @@ http_request:
 
 image:
   # ESPHome resolves local image files from the user's YAML folder, not the package checkout.
-  - file: "https://raw.githubusercontent.com/jtenniswood/esphome-media-player/main/common/assets/placeholder.png"
+  - file: "https://raw.githubusercontent.com/johnluber/esphome-media-player/master/common/assets/placeholder.png"
     id: album_art_placeholder
     type: RGB565
     byte_order: ${image_byte_order}

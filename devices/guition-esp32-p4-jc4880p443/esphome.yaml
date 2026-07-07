@@ -20,7 +20,7 @@ wifi:
 # Packages
 packages:
   music_dashboard:
-    url: https://github.com/jtenniswood/esphome-media-player
+    url: https://github.com/johnluber/esphome-media-player
     files: [devices/guition-esp32-p4-jc4880p443/packages-90.yaml]
     ref: 2026.6.3
     refresh: 1d
