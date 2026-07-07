@@ -1,0 +1,32 @@
+esphome:
+  name: shower-monitor
+  friendly_name: Shower Monitor
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "exGo/lzs6fcZYfQRcq0bY7pcBj0GKit76xovefYKF9k="
+
+ota:
+  - platform: esphome
+    password: "72aed5ffb8bd64a89459076ebf4245b5"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Shower-Monitor Fallback Hotspot"
+    password: "W3UTOotBixuF"
+
+captive_portal:
+    

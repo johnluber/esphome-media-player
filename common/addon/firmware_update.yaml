@@ -1,0 +1,98 @@
+substitutions:
+  firmware_version: "dev"
+
+esphome:
+  project:
+    name: jtenniswood.media-player
+    version: "${firmware_version}"
+  on_boot:
+    - priority: 200
+      then:
+        - text_sensor.template.publish:
+            id: firmware_version_sensor
+            state: "${firmware_version}"
+
+ota:
+  - platform: http_request
+    on_begin:
+      - lambda: 'global_preferences->sync();'
+      - lvgl.pause
+      - artwork_image.release: album_art_background
+      - artwork_image.release: tv_art_background
+      - light.turn_off:
+          id: backlight
+          transition_length: 0s
+    on_error:
+      - light.turn_on:
+          id: backlight
+          brightness: 100%
+          transition_length: 0s
+      - lvgl.resume
+
+globals:
+  - id: update_check_counter
+    type: int
+    initial_value: '1'
+  - id: manual_check_only
+    type: bool
+    initial_value: 'false'
+
+text_sensor:
+  - platform: template
+    name: "Firmware: Version"
+    id: firmware_version_sensor
+    entity_category: diagnostic
+    icon: "mdi:tag"
+    update_interval: never
+    lambda: 'return {"${firmware_version}"};'
+
+update:
+  - platform: http_request
+    id: firmware_update
+    name: "Firmware: Update"
+    source: https://jtenniswood.github.io/esphome-media-player/firmware/${firmware_manifest_slug}/manifest.json
+    update_interval: never
+    on_update_available:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(auto_update_switch).state && !id(manual_check_only);'
+            then:
+              - update.perform: firmware_update
+
+switch:
+  - platform: template
+    name: "Firmware: Auto Update"
+    id: auto_update_switch
+    entity_category: config
+    internal: ${ha_config_internal}
+    icon: "mdi:update"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+select:
+  - platform: template
+    name: "Firmware: Update Frequency"
+    id: update_frequency_select
+    entity_category: config
+    internal: ${ha_config_internal}
+    icon: "mdi:timer-outline"
+    options:
+      - "Hourly"
+      - "Daily"
+      - "Weekly"
+    initial_option: "Daily"
+    optimistic: true
+    restore_value: true
+
+button:
+  - platform: template
+    name: "Firmware: Check for Update"
+    entity_category: config
+    internal: ${ha_config_internal}
+    icon: "mdi:update"
+    on_press:
+      - lambda: 'id(manual_check_only) = true;'
+      - component.update: firmware_update
+      - delay: 15s
+      - lambda: 'id(manual_check_only) = false;'

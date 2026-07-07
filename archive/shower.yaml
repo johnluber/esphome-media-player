@@ -1,0 +1,32 @@
+esphome:
+  name: shower
+  friendly_name: Shower
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "BhlRhZMbhUfAlmXhRjBJlKPvKh2LuBiZ/T9Bw6XnFaw="
+
+ota:
+  - platform: esphome
+    password: "16954d168622c43b5d8a29e8e5b571b2"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Shower Fallback Hotspot"
+    password: "CrK4kLZLRgap"
+
+captive_portal:
+    

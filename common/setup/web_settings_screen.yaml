@@ -1,0 +1,43 @@
+# =============================================================================
+# WEB SETTINGS SCREEN
+# =============================================================================
+# Full-screen black overlay shown while the browser settings page is connected.
+# It mirrors the setup/boot screen style and keeps LVGL on a static frame before
+# the S3 pauses normal display updates.
+# =============================================================================
+
+obj:
+  id: web_settings_screen
+  x: 0
+  y: 0
+  width: ${screen_width}
+  height: ${screen_height}
+  bg_color: 0x000000
+  bg_opa: 100%
+  radius: 0
+  border_width: 0
+  pad_all: 0
+  scrollable: false
+  scrollbar_mode: "off"
+  hidden: true
+  widgets:
+    - obj:
+        align: center
+        width: ${setup_content_width}
+        height: SIZE_CONTENT
+        bg_opa: 0%
+        border_width: 0
+        pad_all: 0
+        scrollable: false
+        layout:
+          type: flex
+          flex_flow: COLUMN
+          flex_align_main: center
+          flex_align_cross: center
+        widgets:
+          - label:
+              text: "Web settings active"
+              text_font: roboto_light40_font
+              text_color: 0xFFFFFF
+              width: ${setup_content_width}
+              text_align: center

@@ -1,0 +1,256 @@
+# =============================================================================
+# FAVORITES - Dynamic artwork_image instances
+# =============================================================================
+# One artwork_image per slot (12 max). URLs are populated at boot by
+# load_favorites_from_json in device.yaml after fetching favorites.json.
+# Placeholder shown until thumbnail is downloaded.
+# =============================================================================
+
+artwork_image:
+  - url: "https://placehold.co/222x210/2d2d2d/555555.jpg"
+    id: fav_art_1
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: 222x210
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - lvgl.image.update:
+          id: fav_img_1
+          src: fav_art_1
+      - lambda: |-
+          auto *art = id(fav_art_1);
+          int w = art->get_content_width();
+          int h = art->get_content_height();
+          if (w <= 0 || h <= 0) return;
+          int sample_y = h - 4;
+          int total_luminance = 0;
+          int samples = 5;
+          for (int s = 0; s < samples; s++) {
+            int sample_x = w * (s + 1) / (samples + 1);
+            Color c = art->get_pixel(sample_x, sample_y);
+            total_luminance += (c.r * 299 + c.g * 587 + c.b * 114) / 1000;
+          }
+          int avg_luminance = total_luminance / samples;
+          lv_color_t text_color = (avg_luminance > 128) ? lv_color_black() : lv_color_white();
+          lv_obj_set_style_text_color(id(fav_label_1), text_color, 0);
+          lv_obj_set_style_bg_opa(id(fav_label_1), LV_OPA_TRANSP, 0);
+
+  - url: "https://placehold.co/222x210/2d2d2d/555555.jpg"
+    id: fav_art_2
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: 222x210
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - lvgl.image.update:
+          id: fav_img_2
+          src: fav_art_2
+      - lambda: |-
+          auto *art = id(fav_art_2);
+          int w = art->get_content_width();
+          int h = art->get_content_height();
+          if (w <= 0 || h <= 0) return;
+          int sample_y = h - 4;
+          int total_luminance = 0;
+          int samples = 5;
+          for (int s = 0; s < samples; s++) {
+            int sample_x = w * (s + 1) / (samples + 1);
+            Color c = art->get_pixel(sample_x, sample_y);
+            total_luminance += (c.r * 299 + c.g * 587 + c.b * 114) / 1000;
+          }
+          int avg_luminance = total_luminance / samples;
+          lv_color_t text_color = (avg_luminance > 128) ? lv_color_black() : lv_color_white();
+          lv_obj_set_style_text_color(id(fav_label_2), text_color, 0);
+          lv_obj_set_style_bg_opa(id(fav_label_2), LV_OPA_TRANSP, 0);
+
+  - url: "https://placehold.co/222x210/2d2d2d/555555.jpg"
+    id: fav_art_3
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: 222x210
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - lvgl.image.update:
+          id: fav_img_3
+          src: fav_art_3
+      - lambda: |-
+          auto *art = id(fav_art_3);
+          int w = art->get_content_width();
+          int h = art->get_content_height();
+          if (w <= 0 || h <= 0) return;
+          int sample_y = h - 4;
+          int total_luminance = 0;
+          int samples = 5;
+          for (int s = 0; s < samples; s++) {
+            int sample_x = w * (s + 1) / (samples + 1);
+            Color c = art->get_pixel(sample_x, sample_y);
+            total_luminance += (c.r * 299 + c.g * 587 + c.b * 114) / 1000;
+          }
+          int avg_luminance = total_luminance / samples;
+          lv_color_t text_color = (avg_luminance > 128) ? lv_color_black() : lv_color_white();
+          lv_obj_set_style_text_color(id(fav_label_3), text_color, 0);
+          lv_obj_set_style_bg_opa(id(fav_label_3), LV_OPA_TRANSP, 0);
+
+  - url: "https://placehold.co/222x210/2d2d2d/555555.jpg"
+    id: fav_art_4
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: 222x210
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - lvgl.image.update:
+          id: fav_img_4
+          src: fav_art_4
+      - lambda: |-
+          auto *art = id(fav_art_4);
+          int w = art->get_content_width();
+          int h = art->get_content_height();
+          if (w <= 0 || h <= 0) return;
+          int sample_y = h - 4;
+          int total_luminance = 0;
+          int samples = 5;
+          for (int s = 0; s < samples; s++) {
+            int sample_x = w * (s + 1) / (samples + 1);
+            Color c = art->get_pixel(sample_x, sample_y);
+            total_luminance += (c.r * 299 + c.g * 587 + c.b * 114) / 1000;
+          }
+          int avg_luminance = total_luminance / samples;
+          lv_color_t text_color = (avg_luminance > 128) ? lv_color_black() : lv_color_white();
+          lv_obj_set_style_text_color(id(fav_label_4), text_color, 0);
+          lv_obj_set_style_bg_opa(id(fav_label_4), LV_OPA_TRANSP, 0);
+
+  - url: "https://placehold.co/222x210/2d2d2d/555555.jpg"
+    id: fav_art_5
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: 222x210
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - lvgl.image.update:
+          id: fav_img_5
+          src: fav_art_5
+      - lambda: |-
+          auto *art = id(fav_art_5);
+          int w = art->get_content_width();
+          int h = art->get_content_height();
+          if (w <= 0 || h <= 0) return;
+          int sample_y = h - 4;
+          int total_luminance = 0;
+          int samples = 5;
+          for (int s = 0; s < samples; s++) {
+            int sample_x = w * (s + 1) / (samples + 1);
+            Color c = art->get_pixel(sample_x, sample_y);
+            total_luminance += (c.r * 299 + c.g * 587 + c.b * 114) / 1000;
+          }
+          int avg_luminance = total_luminance / samples;
+          lv_color_t text_color = (avg_luminance > 128) ? lv_color_black() : lv_color_white();
+          lv_obj_set_style_text_color(id(fav_label_5), text_color, 0);
+          lv_obj_set_style_bg_opa(id(fav_label_5), LV_OPA_TRANSP, 0);
+
+  - url: "https://placehold.co/222x210/2d2d2d/555555.jpg"
+    id: fav_art_6
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: 222x210
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - lvgl.image.update:
+          id: fav_img_6
+          src: fav_art_6
+      - lambda: |-
+          auto *art = id(fav_art_6);
+          int w = art->get_content_width();
+          int h = art->get_content_height();
+          if (w <= 0 || h <= 0) return;
+          int sample_y = h - 4;
+          int total_luminance = 0;
+          int samples = 5;
+          for (int s = 0; s < samples; s++) {
+            int sample_x = w * (s + 1) / (samples + 1);
+            Color c = art->get_pixel(sample_x, sample_y);
+            total_luminance += (c.r * 299 + c.g * 587 + c.b * 114) / 1000;
+          }
+          int avg_luminance = total_luminance / samples;
+          lv_color_t text_color = (avg_luminance > 128) ? lv_color_black() : lv_color_white();
+          lv_obj_set_style_text_color(id(fav_label_6), text_color, 0);
+          lv_obj_set_style_bg_opa(id(fav_label_6), LV_OPA_TRANSP, 0);
+
+  - url: "https://placehold.co/222x210/2d2d2d/555555.jpg"
+    id: fav_art_7
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: 222x210
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - lvgl.image.update:
+          id: fav_img_7
+          src: fav_art_7
+      - lambda: |-
+          auto *art = id(fav_art_7);
+          int w = art->get_content_width();
+          int h = art->get_content_height();
+          if (w <= 0 || h <= 0) return;
+          int sample_y = h - 4;
+          int total_luminance = 0;
+          int samples = 5;
+          for (int s = 0; s < samples; s++) {
+            int sample_x = w * (s + 1) / (samples + 1);
+            Color c = art->get_pixel(sample_x, sample_y);
+            total_luminance += (c.r * 299 + c.g * 587 + c.b * 114) / 1000;
+          }
+          int avg_luminance = total_luminance / samples;
+          lv_color_t text_color = (avg_luminance > 128) ? lv_color_black() : lv_color_white();
+          lv_obj_set_style_text_color(id(fav_label_7), text_color, 0);
+          lv_obj_set_style_bg_opa(id(fav_label_7), LV_OPA_TRANSP, 0);
+
+  - url: "https://placehold.co/222x210/2d2d2d/555555.jpg"
+    id: fav_art_8
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: 222x210
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - lvgl.image.update:
+          id: fav_img_8
+          src: fav_art_8
+      - lambda: |-
+          auto *art = id(fav_art_8);
+          int w = art->get_content_width();
+          int h = art->get_content_height();
+          if (w <= 0 || h <= 0) return;
+          int sample_y = h - 4;
+          int total_luminance = 0;
+          int samples = 5;
+          for (int s = 0; s < samples; s++) {
+            int sample_x = w * (s + 1) / (samples + 1);
+            Color c = art->get_pixel(sample_x, sample_y);
+            total_luminance += (c.r * 299 + c.g * 587 + c.b * 114) / 1000;
+          }
+          int avg_luminance = total_luminance / samples;
+          lv_color_t text_color = (avg_luminance > 128) ? lv_color_black() : lv_color_white();
+          lv_obj_set_style_text_color(id(fav_label_8), text_color, 0);
+          lv_obj_set_style_bg_opa(id(fav_label_8), LV_OPA_TRANSP, 0);
