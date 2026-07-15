@@ -69,6 +69,7 @@ class ImageDecoder {
  protected:
   ArtworkImage *image_;
   bool failed_{false};
+  bool has_failed() const { return this->failed_; }
 
   double x_scale_{1};
   double y_scale_{1};
