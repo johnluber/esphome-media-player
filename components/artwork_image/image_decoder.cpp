@@ -1,12 +1,18 @@
 #include "image_decoder.h"
 #include "artwork_image.h"
 
+#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
 namespace artwork_image {
 
 static const char *const TAG = "artwork_image.decoder";
+
+// Static shared buffer — one allocation reused by all DownloadBuffer instances.
+// Only one artwork_image downloads at a time so this is safe.
+uint8_t *DownloadBuffer::shared_buffer_ = nullptr;
+size_t DownloadBuffer::shared_buffer_size_ = 0;
 
 bool ImageDecoder::set_size(int width, int height) {
   bool success = this->image_->resize_(width, height) > 0;
@@ -89,27 +95,37 @@ void ImageDecoder::draw_rgb565_block(int x, int y, int w, int h, const uint8_t *
   }
 }
 
-DownloadBuffer::DownloadBuffer(size_t size) : size_(size), buffer_(nullptr) {
-  // Buffer allocated lazily on first use to avoid exhausting internal SRAM at boot.
-  // PSRAM is not yet available when static constructors run.
+DownloadBuffer::DownloadBuffer(size_t size) : size_(size), unread_(0) {
+  // No per-instance allocation. The shared buffer is allocated lazily on first
+  // data() call, growing to accommodate the largest size_ seen.
 }
 
 uint8_t *DownloadBuffer::data(size_t offset) {
-  // Allocate lazily on first access — by this point PSRAM is available.
-  if (!this->buffer_ && this->size_ > 0) {
-    this->buffer_ = this->allocator_.allocate(this->size_);
-    if (!this->buffer_) {
-      ESP_LOGE(TAG, "Failed to allocate download buffer of size %zu", this->size_);
+  // Grow shared buffer if needed (lazy, happens after PSRAM is available).
+  if (this->size_ > shared_buffer_size_) {
+    uint8_t *new_buf = static_cast<uint8_t *>(heap_caps_malloc(this->size_, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (!new_buf) {
+      // Fallback to internal RAM
+      new_buf = static_cast<uint8_t *>(heap_caps_malloc(this->size_, MALLOC_CAP_8BIT));
+    }
+    if (!new_buf) {
+      ESP_LOGE(TAG, "Failed to allocate shared download buffer of size %zu", this->size_);
       this->size_ = 0;
       return nullptr;
     }
-    this->reset();
+    if (shared_buffer_) {
+      if (unread_ > 0) memcpy(new_buf, shared_buffer_, unread_);
+      heap_caps_free(shared_buffer_);
+    }
+    shared_buffer_ = new_buf;
+    shared_buffer_size_ = this->size_;
+    ESP_LOGI(TAG, "Shared download buffer allocated: %zu bytes in PSRAM", this->size_);
   }
   if (offset > this->size_) {
     ESP_LOGE(TAG, "Tried to access beyond download buffer bounds!!!");
-    return this->buffer_;
+    return shared_buffer_;
   }
-  return this->buffer_ + offset;
+  return shared_buffer_ + offset;
 }
 
 size_t DownloadBuffer::read(size_t len) {
@@ -125,23 +141,26 @@ size_t DownloadBuffer::read(size_t len) {
 }
 
 size_t DownloadBuffer::resize(size_t size) {
-  if (this->size_ >= size) {
-    return this->size_;
+  if (shared_buffer_size_ >= size) {
+    this->size_ = size;
+    return size;
   }
-  uint8_t *new_buffer = this->allocator_.allocate(size);
-  if (new_buffer) {
-    if (this->buffer_ && this->unread_ > 0) {
-      memcpy(new_buffer, this->buffer_, this->unread_);
+  // Grow shared buffer
+  uint8_t *new_buf = static_cast<uint8_t *>(heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (!new_buf) {
+    new_buf = static_cast<uint8_t *>(heap_caps_malloc(size, MALLOC_CAP_8BIT));
+  }
+  if (new_buf) {
+    if (shared_buffer_ && unread_ > 0) {
+      memcpy(new_buf, shared_buffer_, unread_);
     }
-    this->allocator_.deallocate(this->buffer_, this->size_);
-    this->buffer_ = new_buffer;
+    if (shared_buffer_) heap_caps_free(shared_buffer_);
+    shared_buffer_ = new_buf;
+    shared_buffer_size_ = size;
     this->size_ = size;
     return size;
   } else {
-    ESP_LOGE(TAG, "allocation of %zu bytes failed. Biggest block in heap: %zu Bytes", size,
-             this->allocator_.get_max_free_block_size());
-    this->allocator_.deallocate(this->buffer_, this->size_);
-    this->buffer_ = nullptr;
+    ESP_LOGE(TAG, "Shared buffer resize to %zu bytes failed.", size);
     this->size_ = 0;
     this->reset();
     return 0;
