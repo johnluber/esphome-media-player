@@ -20,13 +20,6 @@ wifi:
     subnet: 255.255.255.0
     dns1: 192.168.3.1
 
-image:
-  - platform: file
-    file: https://raw.githubusercontent.com/johnluber/esphome-media-player/master/common/assets/placeholder.png
-    id: album_art_placeholder
-    type: RGB565
-    byte_order: little_endian
-
 packages:
   music_dashboard: !include devices/guition-esp32-p4-jc4880p443/packages-90.yaml
   site_defaults: !include common/setup/site_defaults.yaml
