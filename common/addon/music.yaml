@@ -20,9 +20,10 @@ globals:
     initial_value: '-1'
 
 external_components:
-  - source: github://johnluber/esphome-media-player@master
+  - source: 
+      type: local
+      path: components
     components: [artwork_image, mipi_rgb]
-    refresh: 1s
 
 http_request:
   id: http_req
@@ -30,11 +31,11 @@ http_request:
   timeout: ${artwork_http_timeout}
 
 image:
-  # ESPHome resolves local image files from the user's YAML folder, not the package checkout.
-  - file: "https://raw.githubusercontent.com/johnluber/esphome-media-player/master/common/assets/placeholder.png"
+  - platform: file
+    file: https://raw.githubusercontent.com/johnluber/esphome-media-player/master/common/assets/placeholder.png
     id: album_art_placeholder
     type: RGB565
-    byte_order: ${image_byte_order}
+    byte_order: little_endian
 
 artwork_image:
   - url: "https://placehold.co/${artwork_size}x${artwork_size}/2d2d2d/555555.jpg"
