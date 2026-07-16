@@ -123,8 +123,8 @@ script:
           }
           lv_obj_align(id(media_progress_bar), LV_ALIGN_BOTTOM_MID, 0, 0);
           ESP_LOGI("artwork", "LVGL image widget: size=%dx%d zoom=%d offsets=%d,%d progress_y=%d",
-                   display_size, display_size, lv_img_get_zoom(w), lv_img_get_offset_x(w), lv_img_get_offset_y(w),
-                   lv_obj_get_y(id(media_progress_bar)));
+                   display_size, display_size, (int)lv_img_get_zoom(w), (int)lv_img_get_offset_x(w), (int)lv_img_get_offset_y(w),
+                   (int)lv_obj_get_y(id(media_progress_bar)));
       - if:
           condition:
             lambda: 'return id(is_tv_mode);'

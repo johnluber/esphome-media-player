@@ -63,9 +63,7 @@ esphome:
             - lvgl.widget.hide: loading_screen
           else:
             - script.execute: open_favorites_panel
-  platformio_options:
-    board_build.flash_mode: dio
-    build_flags:
+  build_flags:
       - "-DCONFIG_LV_DISP_DEF_REFR_PERIOD=10"
       - "-Wno-deprecated-declarations"
 
