@@ -5,8 +5,7 @@ esphome:
   name: ${name}
   name_add_mac_suffix: false
   friendly_name: "Living Room Media Player"
-  platformio_options:
-    build_flags:
+  build_flags:
       - "-DCONFIG_SPIRAM_USE_MALLOC=1"
       - "-DCONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=0"
 api:
