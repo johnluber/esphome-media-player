@@ -4,3 +4,7 @@
 /.esphome/
 /secrets.yaml
 secrets.yaml
+esp32-media-player/
+esp32-flight-radar/
+esp32-home-dashboard/
+esp32-shower-sensor/

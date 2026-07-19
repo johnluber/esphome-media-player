@@ -1,4 +1,0 @@
-interface:
-  display_name: "Updates"
-  short_description: "Summarize recent user-facing project changes"
-  default_prompt: "Use $updates to summarize the last 7 days of user-facing project changes by importance."
