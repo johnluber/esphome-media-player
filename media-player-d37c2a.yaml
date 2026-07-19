@@ -21,5 +21,5 @@ wifi:
     dns1: 192.168.3.1
 
 packages:
-  music_dashboard: !include devices/guition-esp32-p4-jc4880p443/packages-90.yaml
-  site_defaults: !include common/setup/site_defaults.yaml
+  music_dashboard: !include esp32-media-player/devices/guition-esp32-p4-jc4880p443/packages-90.yaml
+  site_defaults: !include esp32-media-player/common/setup/site_defaults.yaml
