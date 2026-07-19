@@ -1,0 +1,109 @@
+interval:
+  - interval: ${playback_refresh_interval}
+    then:
+      - lambda: |-
+          float dur, pos;
+          bool playing;
+
+          if (id(is_tv_mode)) {
+            dur = id(tv_media_duration_sensor).has_state() ? id(tv_media_duration_sensor).state : 0.0f;
+            playing = id(tv_media_player_state_sensor).has_state() && id(tv_media_player_state_sensor).state == "playing";
+
+            auto t = id(ha_time).now();
+            if (playing && t.is_valid() && id(tv_ha_position_epoch) != 0 && id(tv_media_position_sensor).has_state()) {
+              pos = id(tv_media_position_sensor).state + (float)(t.timestamp - id(tv_ha_position_epoch));
+            } else if (playing && t.is_valid() && id(last_tv_position_timestamp) != 0) {
+              pos = id(last_tv_media_position) + (float)(t.timestamp - id(last_tv_position_timestamp));
+              id(last_tv_position_timestamp) = t.timestamp;
+            } else {
+              pos = id(tv_media_position_sensor).has_state() ? id(tv_media_position_sensor).state : id(last_tv_media_position);
+            }
+            if (pos < 0) pos = 0;
+            if (dur > 0 && pos > dur) pos = dur;
+            id(last_tv_media_position) = pos;
+          } else {
+            dur = id(media_duration_sensor).has_state() ? id(media_duration_sensor).state : 0.0f;
+            playing = id(media_player_state_sensor).has_state() && id(media_player_state_sensor).state == "playing";
+
+            auto t = id(ha_time).now();
+            if (playing && t.is_valid() && id(ha_position_epoch) != 0 && id(media_position_sensor).has_state()) {
+              pos = id(media_position_sensor).state + (float)(t.timestamp - id(ha_position_epoch));
+            } else if (playing && t.is_valid() && id(last_position_timestamp) != 0) {
+              pos = id(last_media_position) + (float)(t.timestamp - id(last_position_timestamp));
+              id(last_position_timestamp) = t.timestamp;
+            } else {
+              pos = id(media_position_sensor).has_state() ? id(media_position_sensor).state : id(last_media_position);
+            }
+            if (pos < 0) pos = 0;
+            if (dur > 0 && pos > dur) pos = dur;
+            id(last_media_position) = pos;
+          }
+      - if:
+          condition:
+            lambda: 'return !id(web_settings_active) && ${playback_live_time_enabled};'
+          then:
+            - lvgl.label.update:
+                  id: media_time_label
+                  text: !lambda |-
+                    if (id(is_tv_idle)) return std::string("");
+                    float pos = id(is_tv_mode) ? id(last_tv_media_position) : id(last_media_position);
+                    float dur;
+                    if (id(is_tv_mode)) {
+                      dur = id(tv_media_duration_sensor).has_state() ? id(tv_media_duration_sensor).state : 0.0f;
+                    } else {
+                      dur = id(media_duration_sensor).has_state() ? id(media_duration_sensor).state : 0.0f;
+                    }
+                    int e = (int)pos; if (e < 0) e = 0;
+                    char buf[32];
+                    if (id(show_remaining_time).state) {
+                      int rem = (int)(dur - pos); if (rem < 0) rem = 0;
+                      if (dur >= 3600) {
+                        snprintf(buf, sizeof(buf), "%d:%02d:%02d / -%d:%02d:%02d",
+                                 e / 3600, (e % 3600) / 60, e % 60,
+                                 rem / 3600, (rem % 3600) / 60, rem % 60);
+                      } else {
+                        snprintf(buf, sizeof(buf), "%d:%02d / -%d:%02d", e / 60, e % 60, rem / 60, rem % 60);
+                      }
+                    } else {
+                      int d = (int)dur; if (d < 0) d = 0;
+                      if (dur >= 3600) {
+                        snprintf(buf, sizeof(buf), "%d:%02d:%02d / %d:%02d:%02d",
+                                 e / 3600, (e % 3600) / 60, e % 60,
+                                 d / 3600, (d % 3600) / 60, d % 60);
+                      } else {
+                        snprintf(buf, sizeof(buf), "%d:%02d / %d:%02d", e / 60, e % 60, d / 60, d % 60);
+                      }
+                    }
+                    return std::string(buf);
+      - if:
+          condition:
+            lambda: 'return !id(web_settings_active);'
+          then:
+            - lambda: |-
+                bool should_show = id(show_progress_bar).state && !id(is_tv_idle);
+                bool is_hidden = lv_obj_has_flag(id(media_progress_bar), LV_OBJ_FLAG_HIDDEN);
+
+                if (!should_show) {
+                  if (!is_hidden) {
+                    lv_obj_add_flag(id(media_progress_bar), LV_OBJ_FLAG_HIDDEN);
+                  }
+                  id(last_media_progress_percent) = -1;
+                  id(last_tv_progress_percent) = -1;
+                  return;
+                }
+
+                if (is_hidden) {
+                  lv_obj_clear_flag(id(media_progress_bar), LV_OBJ_FLAG_HIDDEN);
+                  if (id(is_tv_mode)) {
+                    id(last_tv_progress_percent) = -1;
+                  } else {
+                    id(last_media_progress_percent) = -1;
+                  }
+                  id(refresh_progress_bar_from_state).execute();
+                }
+      - if:
+          condition:
+            lambda: 'return !id(web_settings_active) && ${playback_live_position_enabled} && id(show_progress_bar).state && !id(is_tv_idle);'
+          then:
+            - script.execute: refresh_progress_bar_from_state
+

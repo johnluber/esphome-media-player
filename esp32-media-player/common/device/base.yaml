@@ -1,0 +1,52 @@
+substitutions:
+  media_player: ""
+  linked_media_player: ""
+  ha_port: "8123"
+  ha_host: "homeassistant.local"
+  ha_protocol: "http"
+  ha_verify_ssl: "true"
+  allow_insecure_local_artwork: "false"
+  image_byte_order: "little_endian"
+  artwork_image_buffer_size: "65536"
+  artwork_download_spread_ms: "0"
+  artwork_retry_spread_ms: "1500"
+  artwork_http_timeout: "6500ms"
+  artwork_allow_zoom: "true"
+  release_artwork_before_download: "false"
+  playback_refresh_interval: "1s"
+  playback_progress_bar_range: "100"
+  playback_live_time_enabled: "true"
+  playback_live_position_enabled: "true"
+  rgb565_read_expr: "data[pos] | (data[pos + 1] << 8)"
+  backlight_min_visible_level: "0.02f"
+  screen_schedule_internal: "true"
+  ha_config_internal: "false"
+
+preferences:
+  # The dashboard UI keeps display buffers in external RAM while ESPHome also
+  # restores many settings. Avoid the default 1-minute flash flush while the UI
+  # is running; explicit sync calls still save critical setup changes.
+  flash_write_interval: never
+
+safe_mode:
+  # Safe mode marks a boot successful after 60s, which also writes to flash.
+  # On display-heavy builds this can collide with active LVGL/PSRAM traffic.
+  disabled: true
+
+globals:
+  - id: web_settings_active
+    type: bool
+    initial_value: 'false'
+
+packages:
+  time_sync: !include ../addon/time.yaml
+  timezone: !include ../addon/timezone.yaml
+  music: !include ../addon/music.yaml
+  backlight: !include ../addon/backlight.yaml
+  network: !include ../addon/network.yaml
+  speaker_group: !include ../addon/speaker_group.yaml
+  accent_color: !include ../addon/accent_color.yaml
+  firmware_update: !include ../addon/firmware_update.yaml
+  sensors: !include sensors.yaml
+  media_player_select: !include media_player_select.yaml
+  linked_sensors: !include linked_sensors.yaml

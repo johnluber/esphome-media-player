@@ -1,0 +1,14 @@
+.sp-support-btn {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 150;
+  display: inline-block;
+  line-height: 0;
+}
+
+.sp-support-btn img {
+  display: block;
+  height: 60px;
+  border-radius: 999px;
+}

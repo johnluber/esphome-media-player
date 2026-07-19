@@ -1,0 +1,185 @@
+# =============================================================================
+# MUSIC DASHBOARD - HTTP request, album art image
+# =============================================================================
+# Required for artwork_image (album art from Home Assistant entity_picture).
+# Placeholder image shown until art is downloaded.
+# =============================================================================
+
+globals:
+  - id: artwork_retry_pending
+    type: bool
+    initial_value: 'false'
+  - id: artwork_retry_attempts
+    type: int
+    initial_value: '0'
+  - id: artwork_download_stagger_ms
+    type: int
+    initial_value: '-1'
+  - id: artwork_retry_stagger_ms
+    type: int
+    initial_value: '-1'
+
+external_components:
+  - source: github://johnluber/esphome-media-player@master
+    components: [artwork_image, mipi_rgb]
+    refresh: 1s
+
+http_request:
+  id: http_req
+  verify_ssl: ${ha_verify_ssl}
+  timeout: ${artwork_http_timeout}
+
+image:
+  # ESPHome resolves local image files from the user's YAML folder, not the package checkout.
+  - file: "https://raw.githubusercontent.com/johnluber/esphome-media-player/master/common/assets/placeholder.png"
+    id: album_art_placeholder
+    type: RGB565
+    byte_order: ${image_byte_order}
+
+artwork_image:
+  - url: "https://placehold.co/${artwork_size}x${artwork_size}/2d2d2d/555555.jpg"
+    id: album_art_background
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: ${artwork_size}x${artwork_size}
+    buffer_size: ${artwork_image_buffer_size}
+    allow_insecure_local_urls: ${allow_insecure_local_artwork}
+    on_download_finished:
+      - script.execute: apply_downloaded_artwork
+    on_error:
+      - script.execute: handle_artwork_error
+
+  - url: "https://placehold.co/${artwork_size}x${artwork_size}/2d2d2d/555555.jpg"
+    id: tv_art_background
+    format: AUTO
+    type: RGB565
+    byte_order: ${image_byte_order}
+    placeholder: album_art_placeholder
+    resize: ${artwork_size}x${artwork_size}
+    buffer_size: ${artwork_image_buffer_size}
+    allow_insecure_local_urls: ${allow_insecure_local_artwork}
+    on_download_finished:
+      - script.execute: apply_downloaded_artwork
+    on_error:
+      - script.execute: handle_artwork_error
+
+script:
+  - id: ensure_artwork_download_stagger
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: 'return id(artwork_download_stagger_ms) < 0;'
+          then:
+            - lambda: |-
+                const uint32_t retry_window_ms = ${artwork_retry_spread_ms};
+                uint32_t retry_stagger_ms = 0;
+                uint8_t mac[6] = {0, 0, 0, 0, 0, 0};
+                esphome::get_mac_address_raw(mac);
+                uint32_t hash = 2166136261UL;
+                for (uint8_t byte : mac) {
+                  hash ^= byte;
+                  hash *= 16777619UL;
+                }
+                hash ^= 0x9e3779b9UL;
+                hash *= 16777619UL;
+                if (retry_window_ms > 0) {
+                  retry_stagger_ms = hash % retry_window_ms;
+                }
+                id(artwork_download_stagger_ms) = 0;
+                id(artwork_retry_stagger_ms) = static_cast<int>(retry_stagger_ms);
+                ESP_LOGD("artwork", "Artwork stagger: download=%u ms retry=%u ms",
+                         0U, static_cast<unsigned>(retry_stagger_ms));
+
+  - id: apply_downloaded_artwork
+    mode: queued
+    then:
+      - lvgl.widget.hide: artwork_error_label
+      - lambda: |-
+          id(artwork_retry_pending) = false;
+          id(artwork_retry_attempts) = 0;
+      - lambda: |-
+          auto *img = id(is_tv_mode) ? id(tv_art_background) : id(album_art_background);
+          int iw = img->get_width();
+          int ih = img->get_height();
+          ESP_LOGI("artwork", "Apply start: mode=%s image=%dx%d content=%dx%d offset=%d,%d",
+                   id(is_tv_mode) ? "tv" : "music", iw, ih, img->get_content_width(), img->get_content_height(),
+                   img->get_content_offset_x(), img->get_content_offset_y());
+          auto *w = id(album_art_background_widget);
+          constexpr int display_size = ${artwork_display_size};
+          lv_obj_set_size(w, display_size, display_size);
+          lv_obj_set_pos(w, 0, 0);
+          lv_img_set_offset_x(w, 0);
+          lv_img_set_offset_y(w, 0);
+          int dim = (iw < ih) ? iw : ih;
+          if (!id(is_tv_mode) && ${artwork_allow_zoom} && dim > 0 && dim < display_size) {
+            int zoom = (256 * display_size + dim - 1) / dim;
+            lv_img_set_zoom(w, zoom);
+          } else {
+            lv_img_set_zoom(w, 256);
+          }
+          lv_obj_align(id(media_progress_bar), LV_ALIGN_BOTTOM_MID, 0, 0);
+          ESP_LOGI("artwork", "LVGL image widget: size=%dx%d zoom=%d offsets=%d,%d progress_y=%d",
+                   display_size, display_size, (int)lv_img_get_zoom(w), (int)lv_img_get_offset_x(w), (int)lv_img_get_offset_y(w),
+                   (int)lv_obj_get_y(id(media_progress_bar)));
+      - if:
+          condition:
+            lambda: 'return id(is_tv_mode);'
+          then:
+            - lvgl.image.update:
+                id: album_art_background_widget
+                src: tv_art_background
+          else:
+            - lvgl.image.update:
+                id: album_art_background_widget
+                src: album_art_background
+      - lvgl.widget.show: album_art_background_widget
+      - lvgl.widget.update:
+          id: album_art_background_widget
+          opa: 100%
+      - script.execute: extract_accent_color
+      - script.wait: extract_accent_color
+      - script.execute: ${post_artwork_script}
+      - lambda: 'ESP_LOGD("artwork", "Apply finished");'
+
+  - id: handle_artwork_error
+    mode: restart
+    then:
+      - lambda: |-
+          const std::string &url = id(is_tv_mode) ? id(last_tv_artwork_url) : id(last_artwork_url);
+          ESP_LOGW("artwork", "Artwork download failed: %s", url.c_str());
+      - if:
+          condition:
+            lambda: |-
+              const std::string &url = id(is_tv_mode) ? id(last_tv_artwork_url) : id(last_artwork_url);
+              return !url.empty() && id(artwork_retry_attempts) < 5;
+          then:
+            - lambda: |-
+                id(artwork_retry_pending) = true;
+                id(artwork_retry_attempts) += 1;
+            - script.execute: ensure_artwork_download_stagger
+            - script.wait: ensure_artwork_download_stagger
+            - delay: !lambda |-
+                const int attempt = id(artwork_retry_attempts);
+                uint32_t backoff_ms = 500;
+                if (attempt == 2) backoff_ms = 1500;
+                else if (attempt == 3) backoff_ms = 3000;
+                else if (attempt == 4) backoff_ms = 6000;
+                else if (attempt >= 5) backoff_ms = 10000;
+                uint32_t device_spread_ms = static_cast<uint32_t>(id(artwork_retry_stagger_ms));
+                return static_cast<uint32_t>(backoff_ms + device_spread_ms);
+            - lambda: |-
+                auto *img = id(is_tv_mode) ? id(tv_art_background) : id(album_art_background);
+                const std::string &url = id(is_tv_mode) ? id(last_tv_artwork_url) : id(last_artwork_url);
+                if (!url.empty()) {
+                  ESP_LOGI("artwork", "Retrying artwork download attempt %d/5: %s",
+                           id(artwork_retry_attempts), url.c_str());
+                  img->set_url(url);
+                  img->update();
+                }
+          else:
+            - lambda: |-
+                id(artwork_retry_pending) = false;
+                ESP_LOGW("artwork", "Artwork retries exhausted; keeping current artwork visible");

@@ -1,0 +1,389 @@
+# =============================================================================
+# LINKED SENSORS - Secondary media player for TV / Line-in source mode
+# =============================================================================
+# Template sensors receive state from dynamic subscriptions managed by
+# subscribe_linked_media_player in media_player_select.yaml. Updates LVGL
+# widgets when is_tv_mode is true. Mirrors the structure of sensors.yaml but
+# reads from the linked entity (e.g. Apple TV) instead of the primary player.
+# =============================================================================
+
+globals:
+  - id: last_tv_media_position
+    type: float
+    initial_value: '0.0'
+  - id: last_tv_progress_percent
+    type: int
+    initial_value: '-1'
+  - id: last_tv_position_timestamp
+    type: int
+    initial_value: '0'
+  - id: tv_title_received_once
+    type: bool
+    initial_value: 'false'
+  - id: tv_ha_position_epoch
+    type: int
+    initial_value: '0'
+  - id: last_tv_artwork_url
+    type: std::string
+    initial_value: '""'
+
+text_sensor:
+  - platform: template
+    id: tv_media_title_sensor
+    on_value:
+      - if:
+          condition:
+            lambda: 'return !id(web_settings_active) && id(is_tv_mode);'
+          then:
+            - if:
+                condition:
+                  lambda: 'return id(track_info_duration).state > 0 || !id(auto_show_track_info).state;'
+                then:
+                  - script.execute: show_track_view
+                  - script.stop: start_hide_track_info_timer
+            - lvgl.widget.hide: artwork_error_label
+            - lvgl.label.update:
+                id: media_title_label
+                text: !lambda 'return x.empty() ? std::string("\xe2\x80\x94") : x;'
+            - if:
+                condition:
+                  lambda: 'return id(tv_title_received_once);'
+                then:
+                  - lambda: |-
+                      id(last_tv_media_position) = 0.0f;
+                      id(last_tv_progress_percent) = -1;
+                      id(tv_ha_position_epoch) = 0;
+                      auto t = id(ha_time).now();
+                      if (t.is_valid()) {
+                        id(last_tv_position_timestamp) = t.timestamp;
+                      }
+                  - lvgl.label.update:
+                      id: media_time_label
+                      text: !lambda |-
+                        return id(show_remaining_time).state
+                            ? std::string("0:00 / -0:00")
+                            : std::string("0:00 / 0:00");
+                  - lvgl.bar.update:
+                      id: media_progress_bar
+                      value: 0
+                      animated: false
+                  - script.execute: refresh_progress_bar_from_state
+                else:
+                  - lambda: 'id(tv_title_received_once) = true;'
+
+  - platform: template
+    id: tv_media_artist_sensor
+    on_value:
+      - if:
+          condition:
+            lambda: 'return !id(web_settings_active) && id(is_tv_mode);'
+          then:
+            - if:
+                condition:
+                  lambda: 'return !x.empty() && x != "\xe2\x80\x94";'
+                then:
+                  - lambda: 'id(artist_has_content) = true;'
+                  - lvgl.label.update:
+                      id: media_artist_label
+                      text: !lambda 'return x;'
+                  - lvgl.widget.show: media_artist_label
+                else:
+                  - lambda: 'id(artist_has_content) = false;'
+                  - lvgl.widget.hide: media_artist_label
+
+  - platform: template
+    id: tv_entity_picture_sensor
+    on_value:
+      - if:
+          condition:
+            lambda: |-
+              if (!id(is_tv_mode) || x.empty()) return false;
+              std::string path = x;
+              while (!path.empty() && (path.back() == '\n' || path.back() == '\r' || path.back() == ' ')) path.pop_back();
+              std::string new_url = (path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://") ? path : (id(ha_base_url) + path);
+              new_url = esphome::artwork_image::cap_artwork_url(new_url, ${artwork_size});
+              if (new_url == id(last_tv_artwork_url)) return false;
+              id(last_tv_artwork_url) = new_url;
+              return true;
+          then:
+            - if:
+                condition:
+                  lambda: 'return !id(web_settings_active);'
+                then:
+                  - lvgl.widget.update:
+                      id: album_art_background_widget
+                      opa: 50%
+                  - lvgl.widget.hide: artwork_error_label
+                  - lambda: |-
+                      id(artwork_retry_pending) = false;
+                      id(artwork_retry_attempts) = 0;
+                  - if:
+                      condition:
+                        lambda: 'return ${release_artwork_before_download};'
+                      then:
+                        - lvgl.image.update:
+                            id: album_art_background_widget
+                            src: album_art_placeholder
+                        - lvgl.widget.update:
+                            id: album_art_background_widget
+                            opa: 50%
+                        - lvgl.widget.hide: album_art_background_widget
+                        - delay: 50ms
+                        - artwork_image.release: tv_art_background
+                        - delay: 100ms
+                        - lvgl.widget.show: album_art_background_widget
+                  - artwork_image.set_url:
+                      id: tv_art_background
+                      url: !lambda 'return id(last_tv_artwork_url);'
+      - if:
+          condition:
+            lambda: 'return !id(web_settings_active) && id(is_tv_mode) && x.empty() && !id(last_tv_artwork_url).empty();'
+          then:
+            - lambda: 'id(last_tv_artwork_url) = "";'
+            - lvgl.image.update:
+                id: album_art_background_widget
+                src: album_art_placeholder
+            - lvgl.widget.update:
+                id: album_art_background_widget
+                opa: 50%
+
+  - platform: template
+    id: tv_media_player_state_sensor
+    on_value:
+      - if:
+          condition:
+            lambda: |-
+              return id(web_settings_active)
+                  && id(is_tv_mode)
+                  && (x == "idle" || x == "off" || x == "standby");
+          then:
+            - lambda: |-
+                id(is_tv_idle) = true;
+                id(last_tv_artwork_url) = "";
+                id(last_tv_media_position) = 0.0f;
+                id(last_tv_progress_percent) = -1;
+                id(tv_ha_position_epoch) = 0;
+                id(last_tv_position_timestamp) = 0;
+      - if:
+          condition:
+            lambda: 'return id(web_settings_active) && id(is_tv_mode) && x == "playing";'
+          then:
+            - lambda: 'id(is_tv_idle) = false;'
+      - if:
+          condition:
+            lambda: |-
+              return id(is_tv_mode)
+                  && !id(web_settings_active)
+                  && (x == "idle" || x == "off" || x == "standby");
+          then:
+            - if:
+                condition:
+                  lambda: |-
+                    return id(media_source_sensor).has_state()
+                        && (id(media_source_sensor).state == "TV" || id(media_source_sensor).state == "Line-in");
+                then:
+                  - lambda: |-
+                      id(is_tv_idle) = true;
+                      id(last_tv_artwork_url) = "";
+                      id(last_tv_media_position) = 0.0f;
+                      id(last_tv_progress_percent) = -1;
+                      id(tv_ha_position_epoch) = 0;
+                      id(last_tv_position_timestamp) = 0;
+                      lv_obj_set_style_bg_color(id(accent_overlay), lv_color_make(0, 0, 0), 0);
+                      lv_obj_set_style_bg_color(id(artwork_bg_panel), lv_color_make(0, 0, 0), 0);
+                  - script.stop: start_hide_track_info_timer
+                  - script.execute: show_track_view
+                  - lvgl.label.update:
+                      id: media_title_label
+                      text: !lambda 'return id(media_source_sensor).state;'
+                  - lambda: 'id(artist_has_content) = false;'
+                  - lvgl.widget.hide: media_artist_label
+                  - lvgl.widget.hide: media_play_pause_button
+                  - lvgl.widget.hide: media_time_label
+                  - lvgl.widget.hide: media_progress_bar
+                  - lvgl.widget.hide: album_art_background_widget
+                  - script.execute: backlight_wake_timeout
+                else:
+                  - script.execute: exit_tv_mode
+      - if:
+          condition:
+            lambda: |-
+              return !id(web_settings_active) && !id(is_tv_mode) && x == "playing"
+                  && id(media_source_sensor).has_state()
+                  && (id(media_source_sensor).state == "TV" || id(media_source_sensor).state == "Line-in")
+                  && !id(linked_media_player_entity).state.empty();
+          then:
+            - script.execute: enter_tv_mode
+      - if:
+          condition:
+            lambda: 'return !id(web_settings_active) && id(is_tv_mode);'
+          then:
+            - if:
+                condition:
+                  lambda: 'return x == "playing";'
+                then:
+                  - if:
+                      condition:
+                        lambda: 'return id(is_tv_idle);'
+                      then:
+                        - lambda: 'id(is_tv_idle) = false;'
+                        - lvgl.widget.show: media_play_pause_button
+                        - lvgl.widget.show: media_time_label
+                        - lvgl.widget.show: album_art_background_widget
+                        - if:
+                            condition:
+                              lambda: |-
+                                return id(tv_media_title_sensor).has_state()
+                                    && !id(tv_media_title_sensor).state.empty();
+                            then:
+                              - lvgl.label.update:
+                                  id: media_title_label
+                                  text: !lambda 'return id(tv_media_title_sensor).state;'
+                        - if:
+                            condition:
+                              lambda: |-
+                                return id(tv_media_artist_sensor).has_state()
+                                    && !id(tv_media_artist_sensor).state.empty()
+                                    && id(tv_media_artist_sensor).state != "\xe2\x80\x94";
+                            then:
+                              - lambda: 'id(artist_has_content) = true;'
+                              - lvgl.label.update:
+                                  id: media_artist_label
+                                  text: !lambda 'return id(tv_media_artist_sensor).state;'
+                              - lvgl.widget.show: media_artist_label
+                        - lvgl.image.update:
+                            id: album_art_background_widget
+                            src: tv_art_background
+                        - if:
+                            condition:
+                              lambda: |-
+                                return id(tv_entity_picture_sensor).has_state()
+                                    && !id(tv_entity_picture_sensor).state.empty();
+                            then:
+                              - lambda: |-
+                                  std::string path = id(tv_entity_picture_sensor).state;
+                                  while (!path.empty() && (path.back() == '\n' || path.back() == '\r' || path.back() == ' ')) path.pop_back();
+                                  id(last_tv_artwork_url) = (path.substr(0, 7) == "http://" || path.substr(0, 8) == "https://") ? path : (id(ha_base_url) + path);
+                                  id(last_tv_artwork_url) = esphome::artwork_image::cap_artwork_url(id(last_tv_artwork_url), ${artwork_size});
+                                  id(artwork_retry_pending) = false;
+                                  id(artwork_retry_attempts) = 0;
+                              - lvgl.widget.update:
+                                  id: album_art_background_widget
+                                  opa: 50%
+                              - if:
+                                  condition:
+                                    lambda: 'return ${release_artwork_before_download};'
+                                  then:
+                                    - lvgl.image.update:
+                                        id: album_art_background_widget
+                                        src: album_art_placeholder
+                                    - lvgl.widget.update:
+                                        id: album_art_background_widget
+                                        opa: 50%
+                                    - lvgl.widget.hide: album_art_background_widget
+                                    - delay: 50ms
+                                    - artwork_image.release: tv_art_background
+                                    - delay: 100ms
+                                    - lvgl.widget.show: album_art_background_widget
+                              - artwork_image.set_url:
+                                  id: tv_art_background
+                                  url: !lambda 'return id(last_tv_artwork_url);'
+                            else:
+                              - lvgl.image.update:
+                                  id: album_art_background_widget
+                                  src: album_art_placeholder
+                              - lvgl.widget.update:
+                                  id: album_art_background_widget
+                                  opa: 50%
+                  - script.stop: backlight_wake_timeout
+                  - lvgl.resume:
+                  - lvgl.widget.hide:
+                      id: media_play_icon
+                  - lvgl.widget.show:
+                      id: media_pause_icon
+                  - light.turn_on:
+                      id: backlight
+                      brightness: 100%
+                  - if:
+                      condition:
+                        lambda: 'return id(is_screen_dimmed);'
+                      then:
+                        - lambda: 'id(is_screen_dimmed) = false;'
+                        - script.execute: hide_clock_view
+                        - script.execute: show_track_view
+                  - script.execute: start_hide_track_info_timer
+                  - script.execute: refresh_progress_bar_from_state
+                else:
+                  - if:
+                      condition:
+                        lambda: 'return !id(is_tv_idle);'
+                      then:
+                        - script.stop: start_hide_track_info_timer
+                        - script.execute: show_track_view
+                        - lvgl.widget.show:
+                            id: media_play_icon
+                        - lvgl.widget.hide:
+                            id: media_pause_icon
+                        - script.execute: backlight_wake_timeout
+                        - script.execute: refresh_progress_bar_from_state
+
+  - platform: template
+    id: tv_media_position_updated_at_sensor
+    on_value:
+      - if:
+          condition:
+            lambda: 'return id(is_tv_mode);'
+          then:
+            - lambda: |-
+                int yr, mo, dy, hr, mn, sc;
+                if (sscanf(x.c_str(), "%d-%d-%dT%d:%d:%d", &yr, &mo, &dy, &hr, &mn, &sc) != 6 &&
+                    sscanf(x.c_str(), "%d-%d-%d %d:%d:%d", &yr, &mo, &dy, &hr, &mn, &sc) != 6) {
+                  return;
+                }
+                int y = yr, m = mo;
+                if (m <= 2) { y--; m += 12; }
+                long days = 365L*y + y/4 - y/100 + y/400 + (153*(m-3)+2)/5 + dy - 719469;
+                int epoch = (int)(days * 86400L + hr * 3600 + mn * 60 + sc);
+                id(tv_ha_position_epoch) = epoch;
+                if (id(tv_media_position_sensor).has_state()) {
+                  id(last_tv_position_timestamp) = epoch;
+                  float anchor = id(tv_media_position_sensor).state;
+                  auto t = id(ha_time).now();
+                  if (t.is_valid()) {
+                    anchor += (float)(t.timestamp - epoch);
+                  }
+                  if (anchor < 0.0f) anchor = 0.0f;
+                  id(last_tv_media_position) = anchor;
+                }
+            - script.execute: refresh_progress_bar_from_state
+
+sensor:
+  - platform: template
+    id: tv_media_duration_sensor
+    on_value:
+      - if:
+          condition:
+            lambda: 'return id(is_tv_mode);'
+          then:
+            - script.execute: refresh_progress_bar_from_state
+
+  - platform: template
+    id: tv_media_position_sensor
+    on_value:
+      - if:
+          condition:
+            lambda: 'return id(is_tv_mode);'
+          then:
+            - lambda: |-
+                id(last_tv_media_position) = x;
+                auto t = id(ha_time).now();
+                if (id(tv_ha_position_epoch) != 0) {
+                  id(last_tv_position_timestamp) = id(tv_ha_position_epoch);
+                  if (t.is_valid()) {
+                    id(last_tv_media_position) = x + (float)(t.timestamp - id(tv_ha_position_epoch));
+                  }
+                } else {
+                  if (t.is_valid()) id(last_tv_position_timestamp) = t.timestamp;
+                }
+                if (id(last_tv_media_position) < 0.0f) id(last_tv_media_position) = 0.0f;
+            - script.execute: refresh_progress_bar_from_state
