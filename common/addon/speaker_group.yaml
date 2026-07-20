@@ -27,6 +27,12 @@ globals:
   - id: speaker_unjoin_target
     type: std::string
     initial_value: '""'
+  # Set true when a card long-press fires so the click that follows on
+  # release is ignored (LVGL emits CLICKED after LONG_PRESSED on the same
+  # widget). Cleared by the click handler after it swallows one event.
+  - id: long_press_fired
+    type: bool
+    initial_value: 'false'
   - id: speaker_vol_target
     type: std::string
     initial_value: '""'
@@ -504,6 +510,13 @@ script:
       slot: int
     then:
       - lambda: |-
+          // A long-press on the same card fires just before this click on
+          // release. Swallow that one click so a "switch controller" gesture
+          // doesn't also toggle grouping.
+          if (id(long_press_fired)) {
+            id(long_press_fired) = false;
+            return;
+          }
           if (slot < 0 || slot >= id(speaker_count)) return;
           if (id(speaker_entity_ids)[slot] == id(media_player_entity).state) return;
           bool currently_grouped = id(speaker_grouped)[slot];
@@ -517,6 +530,61 @@ script:
             id(speaker_join_member) = id(speaker_entity_ids)[slot];
             id(do_speaker_join).execute();
           }
+
+  # ---------------------------------------------------------------------------
+  # Long-press a speaker card: switch the controlled/displayed speaker to it.
+  # If the panel is currently controlling a grouped speaker, unjoin that
+  # speaker from its group first so switching away doesn't disturb playback.
+  # Setting media_player_entity triggers subscribe_media_player + reboot via
+  # its on_value handler in media_player_select.yaml.
+  # ---------------------------------------------------------------------------
+  - id: speaker_select
+    mode: single
+    parameters:
+      slot: int
+    then:
+      # Mark so the trailing click (LVGL emits CLICKED after LONG_PRESSED on
+      # the same widget) is ignored by speaker_toggle. Auto-clear shortly
+      # after so the flag can never get stuck if no click follows.
+      - lambda: 'id(long_press_fired) = true;'
+      - script.execute: clear_long_press_flag
+      - lambda: |-
+          if (slot < 0 || slot >= id(speaker_count)) return;
+
+          std::string target = id(speaker_entity_ids)[slot];
+          std::string current = id(media_player_entity).state;
+
+          // Already the controlled speaker — nothing to do.
+          if (target == current) return;
+
+          // If the speaker we're currently controlling is grouped, unjoin it
+          // before handing control to the new speaker.
+          for (int i = 0; i < id(speaker_count); i++) {
+            if (id(speaker_entity_ids)[i] == current) {
+              if (id(speaker_grouped)[i]) {
+                id(speaker_unjoin_target) = current;
+                id(do_speaker_unjoin).execute();
+              }
+              break;
+            }
+          }
+
+          ESP_LOGI("media_select", "Long-press: switching controlled speaker to '%s'", target.c_str());
+
+          // Re-point the panel. on_value -> subscribe_media_player -> reboot.
+          auto call = id(media_player_entity).make_call();
+          call.set_value(target);
+          call.perform();
+
+  # Safety net: clear the long-press guard shortly after it's set, so a
+  # long-press that isn't followed by a click (LVGL configs differ) can't
+  # leave the flag stuck and swallow the next legitimate tap. mode: restart
+  # so a rapid second long-press re-arms the window cleanly.
+  - id: clear_long_press_flag
+    mode: restart
+    then:
+      - delay: 400ms
+      - lambda: 'id(long_press_fired) = false;'
 
   - id: do_speaker_join
     mode: single
